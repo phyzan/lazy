@@ -67,7 +67,7 @@ template<typename L, typename R> struct Max;
  * @brief Satisfied by any type that derives from `Pattern` (after decay).
  *
  * This is the gate-keeper concept used in operator overloads.  Because pattern
- * operator overloads are constrained with `PATTERN_REQUIREMENT(L,R)` (at least one
+ * operator overloads are constrained with `LAZY_PATTERN_REQUIREMENT(L,R)` (at least one
  * operand satisfies `isAnyPattern`), they do not interfere with runtime arithmetic.
  */
 template<typename U>
@@ -379,86 +379,86 @@ struct Max : public PatternBinaryOp<Max<L, R>, L, R> {
  * Used as a `requires` constraint on the pattern operator overloads to ensure they
  * only fire for pattern arguments and do not shadow runtime arithmetic.
  */
-#define PATTERN_REQUIREMENT(L, R) (isAnyPattern<L> || isAnyPattern<R>)
+#define LAZY_PATTERN_REQUIREMENT(L, R) (isAnyPattern<L> || isAnyPattern<R>)
 
 /**
  * @brief Constraint macro for unary pattern operators: true when `Arg` is a pattern.
  */
-#define UNARY_PATTERN_REQUIREMENT(Arg) (isAnyPattern<Arg>)
+#define LAZY_UNARY_PATTERN_REQUIREMENT(Arg) (isAnyPattern<Arg>)
 // ======================== Operator overloads ========================
 //
 // All operators below take pattern arguments *by value* and return a new pattern
 // type.  They are purely compile-time: invoking them creates a zero-cost type-level
-// composition.  Because they require PATTERN_REQUIREMENT, they only match when at
+// composition.  Because they require LAZY_PATTERN_REQUIREMENT, they only match when at
 // least one operand is already a Pattern, so they do not interfere with runtime
 // arithmetic overloads in lazy.hpp.
 
 /// @brief Compose two patterns into `Addition<L,R>`.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto operator+(L, R) {
     return Addition<L, R>{};
 }
 
 /// @brief Compose two patterns into `Subtraction<L,R>`.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto operator-(L, R) {
     return Subtraction<L, R>{};
 }
 
 /// @brief Compose two patterns into `Multiplication<L,R>`.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto operator*(L, R) {
     return Multiplication<L, R>{};
 }
 
 /// @brief Compose two patterns into `Division<L,R>`.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto operator/(L, R) {
     return Division<L, R>{};
 }
 
 /// @brief Build a `Negation<Arg>` pattern from a unary minus on a pattern.
 template<typename Arg>
-requires UNARY_PATTERN_REQUIREMENT(Arg)
+requires LAZY_UNARY_PATTERN_REQUIREMENT(Arg)
 constexpr auto operator-(Arg) {
     return Negation<Arg>{};
 }
 
 /// @brief Build a `Power<Base,Exp>` pattern.
 template<typename Base, typename Exp>
-requires PATTERN_REQUIREMENT(Base, Exp)
+requires LAZY_PATTERN_REQUIREMENT(Base, Exp)
 constexpr auto pow(Base, Exp) {
     return Power<Base, Exp>{};
 }
 
 /// @brief Build an `AbsoluteValue<Arg>` pattern.
 template<typename Arg>
-requires UNARY_PATTERN_REQUIREMENT(Arg)
+requires LAZY_UNARY_PATTERN_REQUIREMENT(Arg)
 constexpr auto abs(Arg) {
     return AbsoluteValue<Arg>{};
 }
 
 /// @brief Build a `SquareRoot<Arg>` pattern.
 template<typename Arg>
-requires UNARY_PATTERN_REQUIREMENT(Arg)
+requires LAZY_UNARY_PATTERN_REQUIREMENT(Arg)
 constexpr auto sqrt(Arg) {
     return SquareRoot<Arg>{};
 }
 
 /// @brief Build a `Min<L,R>` pattern.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto min(L, R) {
     return Min<L, R>{};
 }
 
 /// @brief Build a `Max<L,R>` pattern.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto max(L, R) {
     return Max<L, R>{};
 }
@@ -467,42 +467,42 @@ constexpr auto max(L, R) {
 
 /// @brief Build a `LessThan<L,R>` comparison pattern.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto operator<(L, R) {
     return LessThan<L, R>{};
 }
 
 /// @brief Build a `GreaterThan<L,R>` comparison pattern.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto operator>(L, R) {
     return GreaterThan<L, R>{};
 }
 
 /// @brief Build an `Equal<L,R>` comparison pattern.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto operator==(L, R) {
     return Equal<L, R>{};
 }
 
 /// @brief Build a `NotEqual<L,R>` comparison pattern.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto operator!=(L, R) {
     return NotEqual<L, R>{};
 }
 
 /// @brief Build a `LessEqual<L,R>` comparison pattern.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto operator<=(L, R) {
     return LessEqual<L, R>{};
 }
 
 /// @brief Build a `GreaterEqual<L,R>` comparison pattern.
 template<typename L, typename R>
-requires PATTERN_REQUIREMENT(L, R)
+requires LAZY_PATTERN_REQUIREMENT(L, R)
 constexpr auto operator>=(L, R) {
     return GreaterEqual<L, R>{};
 }

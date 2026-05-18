@@ -30,11 +30,11 @@
  *
  * ### Specialising operations for a custom type `Foo`
  * @code
- *   SPECIALIZE_OPERATIONS(Foo) {
+ *   LAZY_SPECIALIZE_OPERATIONS(Foo) {
  *       using T = Foo;
  *       using Base = BinaryOpRules<CustomBinaryRules<Foo>, Foo>;
  *       using Base::evaluate;
- *       EVALUATE_OPER(T, a, b, T, PLUS, T) { out = fast_add(a, b); }
+ *       LAZY_EVALUATE_OPER(T, a, b, T, PLUS, T) { out = fast_add(a, b); }
  *   };
  * @endcode
  *
@@ -746,7 +746,7 @@ struct UnaryOpRules{
  * @brief Primary binary-operation rules for type `T`.
  *
  * A default-constructed `CustomBinaryRules<T>` provides no specialised `evaluate`
- * overloads.  Users should provide a full specialisation (via `SPECIALIZE_OPERATIONS`)
+ * overloads.  Users should provide a full specialisation (via `LAZY_SPECIALIZE_OPERATIONS`)
  * for each numeric type `T` to define how `+`, `-`, `*`, `/`, `pow`, `max`, `min`
  * are computed.
  *
@@ -762,7 +762,7 @@ struct CustomBinaryRules : public BinaryOpRules<CustomBinaryRules<T>, T>{};
 /**
  * @brief Primary unary-operation rules for type `T`.
  *
- * Analogous to `CustomBinaryRules`.  Specialise (via `SPECIALIZE_FUNCTIONS`) to
+ * Analogous to `CustomBinaryRules`.  Specialise (via `LAZY_SPECIALIZE_FUNCTIONS`) to
  * provide custom `evaluate` overloads for unary functions such as `abs`, `sqrt`,
  * `neg`, etc.
  *
@@ -1488,7 +1488,7 @@ LAZY_DEFINE_RELATIONAL_OP(<=, Le)
  *
  * @param TYPE  The underlying arithmetic type (e.g. `double`, `mpfr::mpreal`).
  */
-#define DECLARE_LAZY_NUMERIC_TYPE(TYPE) \
+#define LAZY_DECLARE_NUMERIC_TYPE(TYPE) \
 namespace std {\
 template<>\
 class numeric_limits<lazy::LazyType<TYPE>> : public numeric_limits<TYPE>{};\
@@ -1508,7 +1508,7 @@ class numeric_limits<lazy::LazyType<TYPE>> : public numeric_limits<TYPE>{};\
  * @param TAG      The dispatch tag type (e.g. `ABS`, `SQRT`).
  * @param PATTERN  The pattern template (e.g. `AbsoluteValue`, `SquareRoot`).
  */
-#define DEFINE_UNARY_OP(FUNC, OP, TAG, PATTERN)                             \
+#define LAZY_DEFINE_UNARY_OP(FUNC, OP, TAG, PATTERN)                             \
 template<typename T, typename Arg>                                              \
 struct OP : public Unary<OP<T, Arg>, T, Arg>, public CustomUnaryRules<T> {                \
     using Base = Unary<OP<T, Arg>, T, Arg>;                                     \
@@ -1532,18 +1532,18 @@ LAZY_FORCE_INLINE auto FUNC(U&& arg) {                                          
  *
  * Usage:
  * @code
- *   SPECIALIZE_OPERATIONS(MyType) {
+ *   LAZY_SPECIALIZE_OPERATIONS(MyType) {
  *       using T = MyType;
  *       using Base = BinaryOpRules<CustomBinaryRules<T>, T>;
  *       using Base::evaluate; using Base::eval_rule;
- *       EVALUATE_OPER(T, a, b, T, PLUS, T) { out = my_add(a, b); }
+ *       LAZY_EVALUATE_OPER(T, a, b, T, PLUS, T) { out = my_add(a, b); }
  *       // ...
  *   };
  * @endcode
  *
  * @param Type The arithmetic type to specialise for.
  */
-#define SPECIALIZE_OPERATIONS(Type)\
+#define LAZY_SPECIALIZE_OPERATIONS(Type)\
 template<>\
 struct CustomBinaryRules<Type> : public BinaryOpRules<CustomBinaryRules<Type>, Type>
 
@@ -1552,24 +1552,24 @@ struct CustomBinaryRules<Type> : public BinaryOpRules<CustomBinaryRules<Type>, T
  *
  * Usage:
  * @code
- *   SPECIALIZE_FUNCTIONS(MyType) {
+ *   LAZY_SPECIALIZE_FUNCTIONS(MyType) {
  *       using T = MyType;
  *       using Base = UnaryOpRules<CustomUnaryRules<T>, T>;
  *       using Base::evaluate; using Base::eval_rule;
- *       EVALUATE_FUNC(T, a, NEG, T) { out = my_neg(a); }
+ *       LAZY_EVALUATE_FUNC(T, a, NEG, T) { out = my_neg(a); }
  *   };
  * @endcode
  *
  * @param Type The arithmetic type to specialise for.
  */
-#define SPECIALIZE_FUNCTIONS(Type)\
+#define LAZY_SPECIALIZE_FUNCTIONS(Type)\
 template<>\
 struct CustomUnaryRules<Type> : public UnaryOpRules<CustomUnaryRules<Type>, Type>
 
 /**
  * @brief Override the `eval_rule` dispatch for a specific binary expression pattern.
  *
- * Generates a static member function signature inside a `SPECIALIZE_OPERATIONS` block
+ * Generates a static member function signature inside a `LAZY_SPECIALIZE_OPERATIONS` block
  * that intercepts evaluation when the left-hand expression matches pattern `LEFT` and
  * the right-hand expression matches pattern `RIGHT`.
  *
@@ -1580,14 +1580,14 @@ struct CustomUnaryRules<Type> : public UnaryOpRules<CustomUnaryRules<Type>, Type
  * @param tag   The operation tag (e.g. `PLUS`).
  * @param RIGHT The pattern type of the right sub-expression.
  */
-#define OVERRIDE_OPER(T, a, b, LEFT, tag, RIGHT)\
+#define LAZY_OVERRIDE_OPER(T, a, b, LEFT, tag, RIGHT)\
 LAZY_FORCE_INLINE static void eval_rule(tag, T& out, const fromPattern<T, LEFT>& a, const fromPattern<T, RIGHT>& b)
 
 /**
  * @brief Declare an `evaluate` overload for a specific binary operation and operand types.
  *
  * Generates a `static LAZY_FORCE_INLINE void evaluate(tag, T& out, const LEFT& a, const RIGHT& b)`
- * declaration inside a `SPECIALIZE_OPERATIONS` block.  The body should follow immediately.
+ * declaration inside a `LAZY_SPECIALIZE_OPERATIONS` block.  The body should follow immediately.
  *
  * @param T     The arithmetic value type.
  * @param a     Name for the left value parameter.
@@ -1596,29 +1596,29 @@ LAZY_FORCE_INLINE static void eval_rule(tag, T& out, const fromPattern<T, LEFT>&
  * @param tag   The operation tag type (e.g. `PLUS`, `MUL`).
  * @param RIGHT The C++ type of the right operand.
  */
-#define EVALUATE_OPER(T, a, b, LEFT, tag, RIGHT)\
+#define LAZY_EVALUATE_OPER(T, a, b, LEFT, tag, RIGHT)\
 LAZY_FORCE_INLINE static void evaluate(tag, T& out, const LEFT& a, const RIGHT& b)
 
 /**
  * @brief Declare an `evaluate` overload for a specific unary function and argument type.
  *
  * Generates a `static LAZY_FORCE_INLINE void evaluate(tag, T& out, const ARG& arg)`
- * declaration inside a `SPECIALIZE_FUNCTIONS` block.
+ * declaration inside a `LAZY_SPECIALIZE_FUNCTIONS` block.
  *
  * @param T    The arithmetic value type.
  * @param arg  Name for the argument parameter.
  * @param tag  The operation tag type (e.g. `ABS`, `SQRT`, `NEG`).
  * @param ARG  The C++ type of the argument (typically `T`).
  */
-#define EVALUATE_FUNC(T, arg, tag, ARG)\
+#define LAZY_EVALUATE_FUNC(T, arg, tag, ARG)\
 LAZY_FORCE_INLINE static void evaluate(tag, T& out, const ARG& arg)
 
 
-/// @brief `Abs<T,Arg>` node and lazy `abs(U&&)` overload, defined via `DEFINE_UNARY_OP`.
-DEFINE_UNARY_OP(abs, Abs, ABS, AbsoluteValue)
+/// @brief `Abs<T,Arg>` node and lazy `abs(U&&)` overload, defined via `LAZY_DEFINE_UNARY_OP`.
+LAZY_DEFINE_UNARY_OP(abs, Abs, ABS, AbsoluteValue)
 
-/// @brief `Sqrt<T,Arg>` node and lazy `sqrt(U&&)` overload, defined via `DEFINE_UNARY_OP`.
-DEFINE_UNARY_OP(sqrt, Sqrt, SQRT, SquareRoot)
+/// @brief `Sqrt<T,Arg>` node and lazy `sqrt(U&&)` overload, defined via `LAZY_DEFINE_UNARY_OP`.
+LAZY_DEFINE_UNARY_OP(sqrt, Sqrt, SQRT, SquareRoot)
 
 
 
@@ -1629,7 +1629,7 @@ DEFINE_UNARY_OP(sqrt, Sqrt, SQRT, SquareRoot)
 //
 // HelperfromPattern<T, P> maps a symbolic pattern type P (from patterns.hpp) back to
 // its corresponding expression node type for value type T.  This is used in
-// OVERRIDE_OPER to construct the parameter types of overridden eval_rule functions,
+// LAZY_OVERRIDE_OPER to construct the parameter types of overridden eval_rule functions,
 // enabling pattern-matching on the structure of sub-expressions.
 
 /**
@@ -1756,9 +1756,9 @@ struct HelperfromPattern<T, LessEqual<L, R>>{
  * @brief Convenience alias: map pattern `P` to the corresponding expression node type for `T`.
  *
  * `fromPattern<T, P>` is the expression node type that evaluates the operation described
- * by pattern `P` over values of type `T`.  Used as parameter types in `OVERRIDE_OPER`:
+ * by pattern `P` over values of type `T`.  Used as parameter types in `LAZY_OVERRIDE_OPER`:
  * @code
- *   OVERRIDE_OPER(T, a, b, Addition<T,T>, PLUS, T) {
+ *   LAZY_OVERRIDE_OPER(T, a, b, Addition<T,T>, PLUS, T) {
  *       // a is Add<T, RefType<T>, RefType<T>>, b is RefType<T>
  *       out = optimised_fused_add_then_op(a, b);
  *   }

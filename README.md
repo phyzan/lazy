@@ -159,30 +159,30 @@ bool result = cmp;     // evaluates lazily
 Override how operations are computed for your type using the specialisation macros:
 
 ```cpp
-SPECIALIZE_OPERATIONS(MyFloat) {
+LAZY_SPECIALIZE_OPERATIONS(MyFloat) {
     using T = MyFloat;
     using Base = BinaryOpRules<CustomBinaryRules<T>, T>;
     using Base::evaluate;
     using Base::eval_rule;
 
     // Override + for T op T
-    EVALUATE_OPER(T, a, b, T, PLUS, T) {
+    LAZY_EVALUATE_OPER(T, a, b, T, PLUS, T) {
         out = fast_add(a, b);   // your optimised kernel
     }
 
     // Override + for T op double
-    EVALUATE_OPER(T, a, b, T, PLUS, double) {
+    LAZY_EVALUATE_OPER(T, a, b, T, PLUS, double) {
         out = fast_add_double(a, b);
     }
 };
 
-SPECIALIZE_FUNCTIONS(MyFloat) {
+LAZY_SPECIALIZE_FUNCTIONS(MyFloat) {
     using T = MyFloat;
     using Base = UnaryOpRules<CustomUnaryRules<T>, T>;
     using Base::evaluate;
 
-    EVALUATE_FUNC(T, a, SQRT, T) { out = fast_sqrt(a); }
-    EVALUATE_FUNC(T, a, ABS,  T) { out = fast_abs(a);  }
+    LAZY_EVALUATE_FUNC(T, a, SQRT, T) { out = fast_sqrt(a); }
+    LAZY_EVALUATE_FUNC(T, a, ABS,  T) { out = fast_abs(a);  }
 };
 ```
 
@@ -191,10 +191,10 @@ SPECIALIZE_FUNCTIONS(MyFloat) {
 ## 🎯 Pattern Matching & Fused Operations
 
 
-Use `OVERRIDE_OPER` inside a `SPECIALIZE_OPERATIONS` block:
+Use `LAZY_OVERRIDE_OPER` inside a `LAZY_SPECIALIZE_OPERATIONS` block:
 
 ```cpp
-SPECIALIZE_OPERATIONS(MyFloat) {
+LAZY_SPECIALIZE_OPERATIONS(MyFloat) {
     using T    = MyFloat;
     using Base = BinaryOpRules<CustomBinaryRules<T>, T>;
     using Base::evaluate; using Base::eval_rule;
@@ -202,7 +202,7 @@ SPECIALIZE_OPERATIONS(MyFloat) {
     using Mul_T_T = Multiplication<T, T>;
 
     // Intercept a*b + c  →  fused multiply-add
-    OVERRIDE_OPER(T, a, b, Mul_T_T, PLUS, T) {
+    LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, PLUS, T) {
         out = fma(a.lhs.value(), a.rhs.value(), b.value());
     }
 };
@@ -323,14 +323,14 @@ Time taken with ConcreteType: 91 ms
 
 | Macro | Purpose |
 |---|---|
-| `SPECIALIZE_OPERATIONS(T)` | Open a `CustomBinaryRules<T>` specialisation block |
-| `SPECIALIZE_FUNCTIONS(T)` | Open a `CustomUnaryRules<T>` specialisation block |
-| `EVALUATE_OPER(T,a,b,L,tag,R)` | Declare a typed `evaluate` overload in a binary rules block |
-| `EVALUATE_FUNC(T,a,tag,A)` | Declare a typed `evaluate` overload in a unary rules block |
-| `OVERRIDE_OPER(T,a,b,LP,tag,RP)` | Intercept a specific expression-pattern in an `eval_rule` overload |
-| `DEFINE_UNARY_OP(func,Op,Tag,Pat)` | Declare a new unary node type + free function in one go |
+| `LAZY_SPECIALIZE_OPERATIONS(T)` | Open a `CustomBinaryRules<T>` specialisation block |
+| `LAZY_SPECIALIZE_FUNCTIONS(T)` | Open a `CustomUnaryRules<T>` specialisation block |
+| `LAZY_EVALUATE_OPER(T,a,b,L,tag,R)` | Declare a typed `evaluate` overload in a binary rules block |
+| `LAZY_EVALUATE_FUNC(T,a,tag,A)` | Declare a typed `evaluate` overload in a unary rules block |
+| `LAZY_OVERRIDE_OPER(T,a,b,LP,tag,RP)` | Intercept a specific expression-pattern in an `eval_rule` overload |
+| `LAZY_DEFINE_UNARY_OP(func,Op,Tag,Pat)` | Declare a new unary node type + free function in one go |
 | `LAZY_DEFINE_RELATIONAL_OP(op,Name)` | Declare a relational operator producing a `Comparison` node |
-| `DECLARE_LAZY_NUMERIC_TYPE(T)` | Specialise `std::numeric_limits<LazyType<T>>` |
+| `LAZY_DECLARE_NUMERIC_TYPE(T)` | Specialise `std::numeric_limits<LazyType<T>>` |
 
 ### Key free functions
 
