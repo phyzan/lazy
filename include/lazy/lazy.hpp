@@ -67,10 +67,10 @@
 // ============================================================================
 
 /// @brief Generates a unique identifier by pasting @p base with the current `__COUNTER__`.
-#define UNIQUE_NAME(base) CONCAT(base, __COUNTER__)
+#define LAZY_UNIQUE_NAME(base) LAZY_CONCAT(base, __COUNTER__)
 /// @cond INTERNAL
-#define CONCAT(a,b) CONCAT_IMPL(a,b)
-#define CONCAT_IMPL(a,b) a##b
+#define LAZY_CONCAT(a,b) LAZY_CONCAT_IMPL(a,b)
+#define LAZY_CONCAT_IMPL(a,b) a##b
 /// @endcond
 
 /**
@@ -78,14 +78,14 @@
  * @param IntType The integer type (e.g. `size_t`, `int`).
  * @param I       The pack of integer values.
  */
-#define INTS(IntType, I) std::integer_sequence<IntType, I...>
+#define LAZY_INTS(IntType, I) std::integer_sequence<IntType, I...>
 
 /**
  * @brief Expands to `std::make_integer_sequence<IntType, N>{}` — a zero-based index pack.
  * @param IntType The integer type.
  * @param N       The upper bound (exclusive).
  */
-#define MAKE_INTS(IntType, N) std::make_integer_sequence<IntType, N>{}
+#define LAZY_MAKE_INTS(IntType, N) std::make_integer_sequence<IntType, N>{}
 
 /**
  * @brief Expands a lambda that iterates over `[0, N)` with an integer pack named `I`.
@@ -98,10 +98,10 @@
  * @param I       Name of the integer pack inside the lambda body.
  * @param ...     Body of the lambda.
  */
-#define EXPAND(IntType, N, I, ...) [&]<IntType... I>(INTS(IntType, I)) \
+#define LAZY_EXPAND(IntType, N, I, ...) [&]<IntType... I>(LAZY_INTS(IntType, I)) \
     __attribute__((always_inline, flatten)) { \
     __VA_ARGS__ \
-}(MAKE_INTS(IntType, N))
+}(LAZY_MAKE_INTS(IntType, N))
 
 /**
  * @brief Marks a function as always-inlined.
@@ -109,7 +109,7 @@
  * Equivalent to `inline __attribute__((always_inline))`.  Applied to all hot paths in
  * the expression-tree evaluation to ensure no call overhead remains after optimisation.
  */
-#define FORCE_INLINE inline __attribute__((always_inline))
+#define LAZY_FORCE_INLINE inline __attribute__((always_inline))
 
 /**
  * @brief CRTP helper: casts `this` to `Derived*`, preserving const-ness of the
@@ -119,7 +119,7 @@
  * most-derived type without a virtual dispatch.  `copy_const_t` ensures that a
  * `const`-qualified `*this` produces a `const Derived*`.
  */
-#define THIS static_cast<copy_const_t<std::remove_reference_t<decltype(*this)>, Derived>*>(this)
+#define LAZY_THIS static_cast<copy_const_t<std::remove_reference_t<decltype(*this)>, Derived>*>(this)
 
 
 
@@ -152,10 +152,10 @@
  * @param OP        The operator symbol (e.g. `==`, `>`).
  * @param ClassName The concrete `Comparison`-derived type (e.g. `Eq`, `Gt`).
  */
-#define DEFINE_RELATIONAL_OP(OP, ClassName)\
+#define LAZY_DEFINE_RELATIONAL_OP(OP, ClassName)\
 template<typename L, typename R>\
 requires LAZY_REQUIREMENT(L, R)\
-FORCE_INLINE auto operator OP(L&& lhs, R&& rhs){\
+LAZY_FORCE_INLINE auto operator OP(L&& lhs, R&& rhs){\
     using T = MainTypeOf<L, R>;\
     auto lhs_expr = make_expr<T>(std::forward<L>(lhs));\
     auto rhs_expr = make_expr<T>(std::forward<R>(rhs));\
@@ -165,7 +165,7 @@ FORCE_INLINE auto operator OP(L&& lhs, R&& rhs){\
 /**
  * @brief Copies the `const` qualifier from `From` onto `To`.
  *
- * Used by the `THIS` macro so that CRTP casts into `Derived*` respect const-ness:
+ * Used by the `LAZY_THIS` macro so that CRTP casts into `Derived*` respect const-ness:
  * if the CRTP base method is `const`-qualified, the downcast produces `const Derived*`.
  *
  * @tparam From The type whose const-ness is copied.
@@ -221,7 +221,7 @@ template<typename T> struct LazyType;
 template<typename T, typename Type> struct OtherType;
 
 template<typename T, typename R>
-FORCE_INLINE decltype(auto) make_expr(R&& value);
+LAZY_FORCE_INLINE decltype(auto) make_expr(R&& value);
 /// @endcond
 
 // ============================================================================
@@ -503,8 +503,8 @@ struct Atom : public Expr<Derived, T>{
     using MainType = T;
     static constexpr bool isAtom = true;
 
-    FORCE_INLINE const auto& value() const{
-        return THIS->value();
+    LAZY_FORCE_INLINE const auto& value() const{
+        return LAZY_THIS->value();
     }
 
     operator T() const { return value(); }
@@ -538,13 +538,13 @@ struct Node : public Expr<Derived, T>{
     static constexpr bool isNode = true;
     static constexpr size_t Nbranches = Branches;
 
-    FORCE_INLINE T& eval(T& out) const{
-        return THIS->eval(out);
+    LAZY_FORCE_INLINE T& eval(T& out) const{
+        return LAZY_THIS->eval(out);
     }
 
     operator T() const {
         T out; // TODO: only case where a temporary is created. fix this.
-        return THIS->eval(out);
+        return LAZY_THIS->eval(out);
     }
 
 };
@@ -579,9 +579,9 @@ struct BinaryOperator : public Node<Derived, T, 2>{
     
     template<typename L2, typename R2>
     requires (std::is_constructible_v<L, L2&&> && std::is_constructible_v<R, R2&&>)
-    FORCE_INLINE BinaryOperator(L2&& lhs, R2&& rhs) : lhs(std::forward<L2>(lhs)), rhs(std::forward<R2>(rhs)) {}
+    LAZY_FORCE_INLINE BinaryOperator(L2&& lhs, R2&& rhs) : lhs(std::forward<L2>(lhs)), rhs(std::forward<R2>(rhs)) {}
 
-    FORCE_INLINE T& eval(T& out) const{
+    LAZY_FORCE_INLINE T& eval(T& out) const{
         Derived::eval_rule(typename Derived::tag{}, out, make_expr<T>(lhs), make_expr<T>(rhs));
         return out;
     }
@@ -608,13 +608,13 @@ struct Rules{
     static std::vector<T*> aux_ptrs;
     static std::shared_mutex aux_mutex;
 
-    FORCE_INLINE static void append_ptr(T* ptr){
+    LAZY_FORCE_INLINE static void append_ptr(T* ptr){
         std::unique_lock lock(aux_mutex);
         aux_ptrs.push_back(ptr);
     }
 
     template<typename Func>
-    FORCE_INLINE static void for_each_aux(Func&& fn) {
+    LAZY_FORCE_INLINE static void for_each_aux(Func&& fn) {
         std::shared_lock lock(aux_mutex);
         for (auto* p : aux_ptrs) {fn(p);};
     }
@@ -691,7 +691,7 @@ struct BinaryOpRules{
     inline static void evaluate(tag, T& out, const L& a, const R& b);
 
     template<isTag tag, isExpr<T> L, isExpr<T> R>
-    FORCE_INLINE static void eval_rule(tag, T& out, const L& a, const R& b){
+    LAZY_FORCE_INLINE static void eval_rule(tag, T& out, const L& a, const R& b){
         // IMPORTANT: out may be the same memory location as a and b
         
         // make sure L and R are NOT LazyType (RefType should be passed intead ALWAYS)
@@ -792,7 +792,7 @@ template<typename T>
 struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
 
     template<isBoolTag tag, typename L, typename R>
-    FORCE_INLINE static void evaluate(tag, T& out, const L& a, const R& b){
+    LAZY_FORCE_INLINE static void evaluate(tag, T& out, const L& a, const R& b){
         out = get_bool(tag{}, a, b);
     }
 
@@ -818,7 +818,7 @@ struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
 
 
     template<isBoolTag tag, typename L, typename R>
-    FORCE_INLINE static bool eval_bool(tag, const L& a, const R& b){
+    LAZY_FORCE_INLINE static bool eval_bool(tag, const L& a, const R& b){
         T* worker = RuleTree<T, L, R>::aux;
          if constexpr (isNode<L, T> && isNode<R, T>) {
             // no matter what R is, since this operation has not been overriden,
@@ -1061,9 +1061,9 @@ struct Unary : public Node<Derived, T, 1>{
 
     template<typename Arg2>
     requires( requires {typename std::decay_t<Arg>::MainType;} && isExpr<std::decay_t<Arg>, typename std::decay_t<Arg>::MainType> )
-    FORCE_INLINE Unary(Arg2&& arg) : arg(std::forward<Arg2>(arg)) {}
+    LAZY_FORCE_INLINE Unary(Arg2&& arg) : arg(std::forward<Arg2>(arg)) {}
 
-    FORCE_INLINE T& eval(T& out) const{
+    LAZY_FORCE_INLINE T& eval(T& out) const{
         Derived::eval_rule(typename Derived::tag{}, out, arg);
         return out;
     }
@@ -1101,9 +1101,9 @@ struct RefType : public Atom<RefType<T>, T>{
 
     static constexpr bool isRef = true;
 
-    FORCE_INLINE RefType(const T& value) : value_(value) {}
+    LAZY_FORCE_INLINE RefType(const T& value) : value_(value) {}
 
-    FORCE_INLINE const T& value() const {return value_;}
+    LAZY_FORCE_INLINE const T& value() const {return value_;}
 
     Base::template expr_storage_t<T> value_;
 
@@ -1218,7 +1218,7 @@ struct LazyType : public Atom<LazyType<T>, T>{
 
     operator T() const { return value_; }
 
-    FORCE_INLINE const T& value() const {return value_;}
+    LAZY_FORCE_INLINE const T& value() const {return value_;}
 
     T value_;
 
@@ -1244,9 +1244,9 @@ struct OtherType : public Atom<OtherType<T, Type>, T>{
     
     static constexpr bool isLazy = true;
 
-    FORCE_INLINE OtherType(const Type& value) : value_(value) {}
+    LAZY_FORCE_INLINE OtherType(const Type& value) : value_(value) {}
 
-    FORCE_INLINE const Type& value() const {return value_;}
+    LAZY_FORCE_INLINE const Type& value() const {return value_;}
     
     Type value_;
 
@@ -1275,7 +1275,7 @@ struct OtherType : public Atom<OtherType<T, Type>, T>{
  * @return       An expression node of the appropriate type (see table).
  */
 template<typename T, typename R>
-FORCE_INLINE decltype(auto) make_expr(R&& value){
+LAZY_FORCE_INLINE decltype(auto) make_expr(R&& value){
     if constexpr (isLazy<R, T> && std::is_lvalue_reference_v<R>) {
         // static_assert(std::is_lvalue_reference_v<R>, "LazyType rvalues are not allowed; bind to a variable first.");
         return RefType<T>(value.value());
@@ -1307,7 +1307,7 @@ FORCE_INLINE decltype(auto) make_expr(R&& value){
  * @return     `Add<T, expr_L, expr_R>` node capturing both canonicalised operands.
  */
 template<typename T, typename L, typename R>
-FORCE_INLINE auto make_add(L&& lhs, R&& rhs){
+LAZY_FORCE_INLINE auto make_add(L&& lhs, R&& rhs){
     auto lhs_expr = make_expr<T>(std::forward<L>(lhs));
     auto rhs_expr = make_expr<T>(std::forward<R>(rhs));
     return Add<T, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
@@ -1320,7 +1320,7 @@ FORCE_INLINE auto make_add(L&& lhs, R&& rhs){
  * @tparam R   Right operand type.
  */
 template<typename T, typename L, typename R>
-FORCE_INLINE auto make_mul(L&& lhs, R&& rhs){
+LAZY_FORCE_INLINE auto make_mul(L&& lhs, R&& rhs){
     auto lhs_expr = make_expr<T>(std::forward<L>(lhs));
     auto rhs_expr = make_expr<T>(std::forward<R>(rhs));
     return Mul<T, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
@@ -1333,7 +1333,7 @@ FORCE_INLINE auto make_mul(L&& lhs, R&& rhs){
  * @tparam R   Denominator operand type.
  */
 template<typename T, typename L, typename R>
-FORCE_INLINE auto make_div(L&& lhs, R&& rhs){
+LAZY_FORCE_INLINE auto make_div(L&& lhs, R&& rhs){
     auto lhs_expr = make_expr<T>(std::forward<L>(lhs));
     auto rhs_expr = make_expr<T>(std::forward<R>(rhs));
     return Div<T, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
@@ -1346,7 +1346,7 @@ FORCE_INLINE auto make_div(L&& lhs, R&& rhs){
  * @tparam R   Right operand type.
  */
 template<typename T, typename L, typename R>
-FORCE_INLINE auto make_sub(L&& lhs, R&& rhs){
+LAZY_FORCE_INLINE auto make_sub(L&& lhs, R&& rhs){
     auto lhs_expr = make_expr<T>(std::forward<L>(lhs));
     auto rhs_expr = make_expr<T>(std::forward<R>(rhs));
     return Sub<T, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
@@ -1359,7 +1359,7 @@ FORCE_INLINE auto make_sub(L&& lhs, R&& rhs){
  * @tparam R    Exponent operand type.
  */
 template<typename T, typename L, typename R>
-FORCE_INLINE auto make_pow(L&& lhs, R&& rhs){
+LAZY_FORCE_INLINE auto make_pow(L&& lhs, R&& rhs){
     auto lhs_expr = make_expr<T>(std::forward<L>(lhs));
     auto rhs_expr = make_expr<T>(std::forward<R>(rhs));
     return Pow<T, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
@@ -1371,7 +1371,7 @@ FORCE_INLINE auto make_pow(L&& lhs, R&& rhs){
  * @tparam Arg Operand type.
  */
 template<typename T, typename Arg>
-FORCE_INLINE auto make_neg(Arg&& arg){
+LAZY_FORCE_INLINE auto make_neg(Arg&& arg){
     auto arg_expr = make_expr<T>(std::forward<Arg>(arg));
     return Neg<T, std::decay_t<decltype(arg_expr)>>(std::move(arg_expr));
 }
@@ -1385,42 +1385,42 @@ FORCE_INLINE auto make_neg(Arg&& arg){
 /// @brief Lazy addition: returns `Add<T,L,R>` when at least one operand is an expression.
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
-FORCE_INLINE auto operator+(L&& lhs, R&& rhs){
+LAZY_FORCE_INLINE auto operator+(L&& lhs, R&& rhs){
     return make_add<MainTypeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
 }
 
 /// @brief Lazy multiplication: returns `Mul<T,L,R>` when at least one operand is an expression.
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
-FORCE_INLINE auto operator*(L&& lhs, R&& rhs){
+LAZY_FORCE_INLINE auto operator*(L&& lhs, R&& rhs){
     return make_mul<MainTypeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
 }
 
 /// @brief Lazy division: returns `Div<T,L,R>` when at least one operand is an expression.
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
-FORCE_INLINE auto operator/(L&& lhs, R&& rhs){
+LAZY_FORCE_INLINE auto operator/(L&& lhs, R&& rhs){
     return make_div<MainTypeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
 }
 
 /// @brief Lazy subtraction: returns `Sub<T,L,R>` when at least one operand is an expression.
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
-FORCE_INLINE auto operator-(L&& lhs, R&& rhs){
+LAZY_FORCE_INLINE auto operator-(L&& lhs, R&& rhs){
     return make_sub<MainTypeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
 }
 
 /// @brief Lazy unary negation: returns `Neg<T,Arg>` for any expression argument.
 template<typename Arg>
 requires( requires {typename std::decay_t<Arg>::MainType;} && isExpr<std::decay_t<Arg>, typename std::decay_t<Arg>::MainType> )
-FORCE_INLINE auto operator-(Arg&& arg){
+LAZY_FORCE_INLINE auto operator-(Arg&& arg){
     return make_neg<MainTypeOf<Arg, void>>(std::forward<Arg>(arg));
 }
 
 /// @brief Lazy exponentiation: returns `Pow<T,Base,Exp>` when at least one operand is an expression.
 template<typename Base, typename Exp>
 requires LAZY_REQUIREMENT(Base, Exp)
-FORCE_INLINE auto pow(Base&& base, Exp&& exp){
+LAZY_FORCE_INLINE auto pow(Base&& base, Exp&& exp){
     return make_pow<MainTypeOf<Base, Exp>>(std::forward<Base>(base), std::forward<Exp>(exp));
 }
 
@@ -1433,7 +1433,7 @@ FORCE_INLINE auto pow(Base&& base, Exp&& exp){
  */
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
-FORCE_INLINE auto max(L&& lhs, R&& rhs){
+LAZY_FORCE_INLINE auto max(L&& lhs, R&& rhs){
     auto lhs_expr = make_expr<MainTypeOf<L, R>>(std::forward<L>(lhs));
     auto rhs_expr = make_expr<MainTypeOf<L, R>>(std::forward<R>(rhs));
     return MaxLazy<MainTypeOf<L, R>, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
@@ -1446,7 +1446,7 @@ FORCE_INLINE auto max(L&& lhs, R&& rhs){
  */
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
-FORCE_INLINE auto min(L&& lhs, R&& rhs){
+LAZY_FORCE_INLINE auto min(L&& lhs, R&& rhs){
     auto lhs_expr = make_expr<MainTypeOf<L, R>>(std::forward<L>(lhs));
     auto rhs_expr = make_expr<MainTypeOf<L, R>>(std::forward<R>(rhs));
     return MinLazy<MainTypeOf<L, R>, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
@@ -1465,17 +1465,17 @@ template<typename T>
 inline std::shared_mutex Rules<T>::aux_mutex;
 
 
-DEFINE_RELATIONAL_OP(==, Eq)
+LAZY_DEFINE_RELATIONAL_OP(==, Eq)
 
-DEFINE_RELATIONAL_OP(!=, Neq)
+LAZY_DEFINE_RELATIONAL_OP(!=, Neq)
 
-DEFINE_RELATIONAL_OP(>, Gt)
+LAZY_DEFINE_RELATIONAL_OP(>, Gt)
 
-DEFINE_RELATIONAL_OP(<, Lt)
+LAZY_DEFINE_RELATIONAL_OP(<, Lt)
 
-DEFINE_RELATIONAL_OP(>=, Ge)
+LAZY_DEFINE_RELATIONAL_OP(>=, Ge)
 
-DEFINE_RELATIONAL_OP(<=, Le)
+LAZY_DEFINE_RELATIONAL_OP(<=, Le)
 
 /**
  * @brief Specialise `std::numeric_limits` for `LazyType<TYPE>` by inheriting from
@@ -1521,7 +1521,7 @@ requires (                                                                      
     requires { typename std::decay_t<U>::MainType; } &&                         \
     isExpr<std::decay_t<U>, typename std::decay_t<U>::MainType>                 \
 )                                                                               \
-FORCE_INLINE auto FUNC(U&& arg) {                                               \
+LAZY_FORCE_INLINE auto FUNC(U&& arg) {                                               \
     using T = MainType<U>;                                                      \
     return OP<T, std::decay_t<U>>(std::forward<U>(arg));                        \
 }
@@ -1581,12 +1581,12 @@ struct CustomUnaryRules<Type> : public UnaryOpRules<CustomUnaryRules<Type>, Type
  * @param RIGHT The pattern type of the right sub-expression.
  */
 #define OVERRIDE_OPER(T, a, b, LEFT, tag, RIGHT)\
-FORCE_INLINE static void eval_rule(tag, T& out, const fromPattern<T, LEFT>& a, const fromPattern<T, RIGHT>& b)
+LAZY_FORCE_INLINE static void eval_rule(tag, T& out, const fromPattern<T, LEFT>& a, const fromPattern<T, RIGHT>& b)
 
 /**
  * @brief Declare an `evaluate` overload for a specific binary operation and operand types.
  *
- * Generates a `static FORCE_INLINE void evaluate(tag, T& out, const LEFT& a, const RIGHT& b)`
+ * Generates a `static LAZY_FORCE_INLINE void evaluate(tag, T& out, const LEFT& a, const RIGHT& b)`
  * declaration inside a `SPECIALIZE_OPERATIONS` block.  The body should follow immediately.
  *
  * @param T     The arithmetic value type.
@@ -1597,12 +1597,12 @@ FORCE_INLINE static void eval_rule(tag, T& out, const fromPattern<T, LEFT>& a, c
  * @param RIGHT The C++ type of the right operand.
  */
 #define EVALUATE_OPER(T, a, b, LEFT, tag, RIGHT)\
-FORCE_INLINE static void evaluate(tag, T& out, const LEFT& a, const RIGHT& b)
+LAZY_FORCE_INLINE static void evaluate(tag, T& out, const LEFT& a, const RIGHT& b)
 
 /**
  * @brief Declare an `evaluate` overload for a specific unary function and argument type.
  *
- * Generates a `static FORCE_INLINE void evaluate(tag, T& out, const ARG& arg)`
+ * Generates a `static LAZY_FORCE_INLINE void evaluate(tag, T& out, const ARG& arg)`
  * declaration inside a `SPECIALIZE_FUNCTIONS` block.
  *
  * @param T    The arithmetic value type.
@@ -1611,7 +1611,7 @@ FORCE_INLINE static void evaluate(tag, T& out, const LEFT& a, const RIGHT& b)
  * @param ARG  The C++ type of the argument (typically `T`).
  */
 #define EVALUATE_FUNC(T, arg, tag, ARG)\
-FORCE_INLINE static void evaluate(tag, T& out, const ARG& arg)
+LAZY_FORCE_INLINE static void evaluate(tag, T& out, const ARG& arg)
 
 
 /// @brief `Abs<T,Arg>` node and lazy `abs(U&&)` overload, defined via `DEFINE_UNARY_OP`.

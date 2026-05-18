@@ -51,7 +51,7 @@ T result2 = expr;  // same thing
 | 🔌 **Pluggable rules** | Specialise `CustomBinaryRules<T>` / `CustomUnaryRules<T>` for type-specific kernels |
 | 🧵 **Thread-safe temporaries** | Per-thread scratch allocation via `RuleTree` — no heap, no locks on hot paths |
 | 🔢 **MPFR ready** | Include `mpfrLazy.hpp` for full `mpfr::mpreal` support with fused operations |
-| 🏎️ **Zero overhead** | All paths are `FORCE_INLINE`; the compiler sees flat arithmetic after optimisation |
+| 🏎️ **Zero overhead** | All paths are `LAZY_FORCE_INLINE`; the compiler sees flat arithmetic after optimisation |
 | 📐 **Pattern rewriting** | Intercept `a*b + c` and replace with `mpfr_fma` automatically |
 
 ---
@@ -329,7 +329,7 @@ Time taken with ConcreteType: 91 ms
 | `EVALUATE_FUNC(T,a,tag,A)` | Declare a typed `evaluate` overload in a unary rules block |
 | `OVERRIDE_OPER(T,a,b,LP,tag,RP)` | Intercept a specific expression-pattern in an `eval_rule` overload |
 | `DEFINE_UNARY_OP(func,Op,Tag,Pat)` | Declare a new unary node type + free function in one go |
-| `DEFINE_RELATIONAL_OP(op,Name)` | Declare a relational operator producing a `Comparison` node |
+| `LAZY_DEFINE_RELATIONAL_OP(op,Name)` | Declare a relational operator producing a `Comparison` node |
 | `DECLARE_LAZY_NUMERIC_TYPE(T)` | Specialise `std::numeric_limits<LazyType<T>>` |
 
 ### Key free functions
