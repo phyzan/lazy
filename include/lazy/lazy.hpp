@@ -128,7 +128,7 @@
 // ============================================================================
 
 /**
- * @brief Constraint: at least one of `L`, `R` is a lazy expression type.
+ * @brief Constraint: at least one of `L`, `R` is a lazy expression type. The other type may be a lazy expression or a raw value convertible to `T`.
  *
  * Expands to an `&&`-expression that is `true` when `std::decay_t<L>` or
  * `std::decay_t<R>` (or both) expose a `MainType` alias and derive from
@@ -137,8 +137,8 @@
  * operands and do not shadow built-in arithmetic.
  */
 #define LAZY_REQUIREMENT(L, R)\
-    ( (requires {typename std::decay_t<L>::MainType;} && isExpr<std::decay_t<L>, typename std::decay_t<L>::MainType>) || \
-      (requires {typename std::decay_t<R>::MainType;} && isExpr<std::decay_t<R>, typename std::decay_t<R>::MainType>) )
+    ( (requires {typename std::decay_t<L>::MainType;} && isExpr<std::decay_t<L>, typename std::decay_t<L>::MainType> && (isExpr<std::decay_t<R>, typename std::decay_t<L>::MainType> || std::is_convertible_v<std::decay_t<R>, typename std::decay_t<L>::MainType>)) || \
+      (requires {typename std::decay_t<R>::MainType;} && isExpr<std::decay_t<R>, typename std::decay_t<R>::MainType> && (isExpr<std::decay_t<L>, typename std::decay_t<R>::MainType> || std::is_convertible_v<std::decay_t<L>, typename std::decay_t<R>::MainType>)) )
 
 
 /**
