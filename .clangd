@@ -1,17 +1,14 @@
 CompileFlags:
   Add:
     - "-std=c++20"
-    - "-O3"
     - "-Wall"
     - "-Wextra"
     - "-Wpedantic"
     - "-Werror"
     - "-Wconversion"
     - "-Wshadow"
-    - "-fopenmp"
-    - "-fno-math-errno"
-    - "-DMPREAL"
     - "-Wno-sign-conversion"
+    - "-Iinclude"
   Compiler: clang++
 
 Index:

@@ -39,14 +39,14 @@
  *       `mpfr::mpreal`. It includes `lazy.hpp` internally.
  */
 
-#include "lazy.hpp"
+#include "../lazy.hpp"
 #include <mpreal.h>
+#include <type_traits>
 
 /// Plug `LazyType<mpfr::mpreal>` into `std::numeric_limits` so that generic
 /// numerical code (e.g. ODE solvers querying `epsilon`) works transparently.
-LAZY_DECLARE_NUMERIC_TYPE(mpfr::mpreal);
 
-namespace lazy {
+namespace lazy::detail {
 
 
 /**
@@ -401,7 +401,7 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
 
     /// 3-operand sum: `a + (b + c)` via `mpfr_sum` for improved accuracy.
     LAZY_OVERRIDE_OPER(T, a, b, T, PLUS, Add_T_T){
-        // a is an Add expression with lhs and rhs
+        // b is an Add expression with lhs and rhs
         T& a_mut = const_cast<T&>(a.value());
         T& b_lhs_mut = const_cast<T&>(b.lhs.value());
         T& b_rhs_mut = const_cast<T&>(b.rhs.value());
@@ -472,25 +472,6 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
 
 };
 
-/**
- * @brief Set the global default MPFR precision and resize all scratch buffers.
- *
- * Changes the precision for newly created `mpfr::mpreal` objects **and** resizes
- * every `mpfr::mpreal` scratch buffer registered in `Rules<mpfr::mpreal>::aux_ptrs`
- * (i.e. all thread-local temporaries created by `RuleTree` for `mpfr::mpreal`
- * expressions).  This ensures that subsequent lazy evaluations use the new precision
- * throughout.
- *
- * @param prec  The new MPFR precision in bits (e.g. 256 for quad-like precision).
- */
-inline void set_default_mpreal_prec(mpfr_prec_t prec){
-    mpfr::mpreal::set_default_prec(prec);
-    LazyType<mpfr::mpreal>::for_each_aux([prec](mpfr::mpreal* key){
-        key->set_prec(prec);
-    });
-    mpfr::mpreal::set_default_prec(prec);
-}
-
 
 /**
  * @brief Check whether a `LazyType<mpfr::mpreal>` holds a finite value.
@@ -507,7 +488,35 @@ inline bool isfinite(const LazyType<mpfr::mpreal>& x){
 }
 
 
-}; // namespace lazy
+}; // namespace lazy::detail
+
+LAZY_DECLARE_NUMERIC_TYPE(mpfr::mpreal);
+
+
+namespace lazy {
+
+using lazy::detail::isfinite;
+
+/**
+ * @brief Set the global default MPFR precision and resize all scratch buffers.
+ *
+ * Changes the precision for newly created `mpfr::mpreal` objects **and** resizes
+ * every `mpfr::mpreal` scratch buffer registered in `Rules<mpfr::mpreal>::aux_ptrs`
+ * (i.e. all thread-local temporaries created by `RuleTree` for `mpfr::mpreal`
+ * expressions).  This ensures that subsequent lazy evaluations use the new precision
+ * throughout.
+ *
+ * @param prec  The new MPFR precision in bits (e.g. 256 for quad-like precision).
+ */
+inline void set_default_mpreal_prec(mpfr_prec_t prec){
+    mpfr::mpreal::set_default_prec(prec);
+    lazy::LazyType<mpfr::mpreal>::for_each_aux([prec](mpfr::mpreal* key){
+        key->set_prec(prec);
+    });
+    mpfr::mpreal::set_default_prec(prec);
+}
+
+} // namespace lazy
 
 
 #endif // MPFR_LAZY_HPP

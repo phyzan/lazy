@@ -1,6 +1,4 @@
-#include "include/lazy/mpfrLazy.hpp"
-
-
+#include <lazy/apps/mpfrLazy.hpp>
 
 int main(){
 
@@ -49,7 +47,7 @@ int main(){
     std::cout << "Value with LazyType        :  " << res2.value() << std::endl;
     std::cout << "Speedup:                      " << (double(time_T) / (double)time_CT) << "x" << std::endl;
 
-    //g++ -std=c++20 -O3 -DNDEBUG example.cpp -o example -lmpfr -lgmp
+    //g++ -std=c++20 -O3 -DNDEBUG -Iinclude example.cpp -o example -lmpfr -lgmp
     // or clang++
 
 }
