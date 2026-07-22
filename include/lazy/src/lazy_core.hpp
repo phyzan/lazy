@@ -299,18 +299,11 @@ struct BinaryOperator : public Node<Derived, T, 2>{
 template<typename T>
 struct Rules{
 
-    static std::vector<T*> aux_ptrs;
-    static std::shared_mutex aux_mutex;
-
-    LAZY_FORCE_INLINE static void append_ptr(T* ptr){
-        std::unique_lock lock(aux_mutex);
-        aux_ptrs.push_back(ptr);
-    }
+    inline static thread_local std::vector<T*> aux_workers;
 
     template<typename Func>
     LAZY_FORCE_INLINE static void for_each_aux(Func&& fn) {
-        std::shared_lock lock(aux_mutex);
-        for (auto* p : aux_ptrs) {fn(p);};
+        for (T* p : aux_workers) {fn(*p);};
     }
 };
 
@@ -338,12 +331,10 @@ struct RuleTree : public Rules<T>{
     using Base = Rules<T>;
     static_assert(sizeof...(Branch) > 0, "Branches must be greater than 0");
 
-    inline static thread_local T* aux = [](){
-        static thread_local std::array<T, Nb> aux_storage;
-        for (size_t i = 0; i < Nb; ++i){
-            Base::append_ptr(&aux_storage[i]);
-        }
-        return aux_storage.data();
+    inline static thread_local T* worker = [](){
+        static thread_local std::array<T, Nb> arr;  // Allocate contiguous array
+        Base::aux_workers.push_back(arr.data());
+        return arr.data();
     }();
 
 };
@@ -392,7 +383,7 @@ struct BinaryOpRules{
         static_assert(!traits::isLazy<L, T> && !traits::isLazy<R, T>, "LazyType should not be passed to eval_rule, use RefType instead");
 
         // By default, eval_rule simply evaluates the sub-expressions and then calls evaluate with the raw values. Override this if you want to do something different, like short-circuiting for addition or multiplication.
-        T* worker = RuleTree<T, L, R>::aux;
+        T* worker = RuleTree<T, L, R>::worker;
         if constexpr (traits::isNode<L, T>) {
             // no matter what R is, since this operation has not been overriden,
             // we need to evaluate one of the branches (convention: the left one)
@@ -427,8 +418,8 @@ struct UnaryOpRules{
     template<traits::isTag tag, traits::isExpr<T> Arg>
     inline static void eval_rule(tag, T& out, const Arg& a){
         if constexpr (traits::isNode<Arg, T>) {
-            T& worker = RuleTree<T, Arg>::aux[0];
-            Derived::evaluate(tag{}, out, a.eval(worker));
+            T* worker = RuleTree<T, Arg>::worker;
+            Derived::evaluate(tag{}, out, a.eval(worker[0]));
         } else {
             Derived::evaluate(tag{}, out, a.value());
         }
@@ -728,17 +719,6 @@ LAZY_FORCE_INLINE decltype(auto) make_expr(R&& value){
         return OtherType<T, std::decay_t<R>>(std::forward<R>(value));
     }
 }
-
-// ===========================================================================================================
-// ================================== Relational operators and other comparisons =============================
-// ===========================================================================================================
-
-
-template<typename T>
-inline std::vector<T*> detail::Rules<T>::aux_ptrs;
-
-template<typename T>
-inline std::shared_mutex detail::Rules<T>::aux_mutex;
 
 
 } // namespace detail

@@ -233,6 +233,5 @@ struct CustomBinaryRules<MyType>
 Each unique sub-expression branch of an algebraic tree gets its own **thread-local** scratch array via `RuleTree`. This means:
 
 - ✅ Multiple threads can evaluate expressions of the **same type** concurrently
-- ✅ The global `Rules<T>::aux_ptrs` registry is protected by a `shared_mutex`
 - ⚠️ A single `LazyType<T>` variable must not be written from multiple threads
   simultaneously (it is not atomic)

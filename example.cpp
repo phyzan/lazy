@@ -1,4 +1,5 @@
 #include <lazy/apps/mpfrLazy.hpp>
+#include <chrono>
 
 int main(){
 

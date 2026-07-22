@@ -56,7 +56,7 @@ struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
 
     template<traits::isBoolTag tag, typename L, typename R>
     LAZY_FORCE_INLINE static bool eval_bool(tag, const L& a, const R& b){
-        T* worker = RuleTree<T, L, R>::aux;
+        T* worker = RuleTree<T, L, R>::worker;
          if constexpr (traits::isNode<L, T> && traits::isNode<R, T>) {
             // no matter what R is, since this operation has not been overriden,
             // we need to evaluate one of the branches (convention: the left one)

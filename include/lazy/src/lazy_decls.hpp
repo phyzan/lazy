@@ -42,24 +42,7 @@
  * All types live in the `lazy` namespace.  `patterns.hpp` is a prerequisite.
  */
 
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
-#include <cfloat>
-#include <cmath>
-#include <cstring>
-#include <limits>
-#include <complex>
-#include <algorithm>
-#include <cstdint>
-#include <type_traits>
-#include <utility>
 #include <vector>
-#include <mutex>
-#include <shared_mutex>
-#include <thread>
-#include <chrono>
 #include "patterns.hpp"
 
 

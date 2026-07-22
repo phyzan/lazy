@@ -41,7 +41,6 @@
 
 #include "../lazy.hpp"
 #include <mpreal.h>
-#include <type_traits>
 
 /// Plug `LazyType<mpfr::mpreal>` into `std::numeric_limits` so that generic
 /// numerical code (e.g. ODE solvers querying `epsilon`) works transparently.
@@ -510,8 +509,8 @@ using lazy::detail::isfinite;
  */
 inline void set_default_mpreal_prec(mpfr_prec_t prec){
     mpfr::mpreal::set_default_prec(prec);
-    lazy::LazyType<mpfr::mpreal>::for_each_aux([prec](mpfr::mpreal* key){
-        key->set_prec(prec);
+    lazy::LazyType<mpfr::mpreal>::for_each_aux([prec](mpfr::mpreal& key){
+        key.set_prec(prec);
     });
     mpfr::mpreal::set_default_prec(prec);
 }
