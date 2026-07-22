@@ -233,13 +233,14 @@ struct Node : public Expr<Derived, T>{
     static constexpr bool isNode = true;
     static constexpr size_t Nbranches = Branches;
 
+    inline static thread_local T tmp{};
+
     LAZY_FORCE_INLINE T& eval(T& out) const{
         return LAZY_THIS->eval(out);
     }
 
     operator T() const {
-        T out; // TODO: only case where a temporary is created. fix this.
-        return LAZY_THIS->eval(out);
+        return LAZY_THIS->eval(tmp);
     }
 
 };
@@ -586,8 +587,6 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     using Base = detail::Atom<LazyType<T>, T>;
     
     static constexpr bool isLazy = true;
-
-    inline static thread_local T tmp = 0;
 
 
     template<typename F>
