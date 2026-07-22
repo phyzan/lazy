@@ -21,9 +21,8 @@ namespace lazy::detail{
  * `<`, `>=`, `<=`.
  *
  * The `evaluate(tag, out, a, b)` overload used by the standard `eval_rule` path writes
- * the `bool` result into `out` (cast to `T`) via `get_bool`.
+ * the `bool` result into `out` via `get_bool`.
  *
- * @tparam T The arithmetic value type.
  */
 template<typename T>
 struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
@@ -35,17 +34,17 @@ struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
 
     template<traits::isBoolTag tag, typename L, typename R>
     inline static bool get_bool(tag, const L& a, const R& b){
-        if constexpr (std::is_same_v<tag, EQ>) {
+        if constexpr (std::is_same_v<tag, lazy::tags::EQ>) {
             return a == b;
-        } else if constexpr (std::is_same_v<tag, NEQ>) {
+        } else if constexpr (std::is_same_v<tag, lazy::tags::NEQ>) {
             return a != b;
-        } else if constexpr (std::is_same_v<tag, GT>) {
+        } else if constexpr (std::is_same_v<tag, lazy::tags::GT>) {
             return a > b;
-        } else if constexpr (std::is_same_v<tag, LT>) {
+        } else if constexpr (std::is_same_v<tag, lazy::tags::LT>) {
             return a < b;
-        } else if constexpr (std::is_same_v<tag, GE>) {
+        } else if constexpr (std::is_same_v<tag, lazy::tags::GE>) {
             return a >= b;
-        } else if constexpr (std::is_same_v<tag, LE>) {
+        } else if constexpr (std::is_same_v<tag, lazy::tags::LE>) {
             return a <= b;
         } else {
             static_assert(traits::isBoolTag<tag>, "Invalid boolean tag");
@@ -109,7 +108,7 @@ template<typename T, typename L, typename R>
 struct Eq : public Comparison<Eq<T, L, R>, T, L, R>{
     using Base = Comparison<Eq<T, L, R>, T, L, R>;
     using Base::Base;
-    using tag = EQ;
+    using tag = lazy::tags::EQ;
 };
 
 
@@ -118,7 +117,7 @@ template<typename T, typename L, typename R>
 struct Gt : public Comparison<Gt<T, L, R>, T, L, R>{
     using Base = Comparison<Gt<T, L, R>, T, L, R>;
     using Base::Base;
-    using tag = GT;
+    using tag = lazy::tags::GT;
 };
 
 /// @brief Lazy less-than comparison node (`lhs < rhs`).  `operator bool()` returns the result.
@@ -126,7 +125,7 @@ template<typename T, typename L, typename R>
 struct Lt : public Comparison<Lt<T, L, R>, T, L, R>{
     using Base = Comparison<Lt<T, L, R>, T, L, R>;
     using Base::Base;
-    using tag = LT;
+    using tag = lazy::tags::LT;
 };
 
 /// @brief Lazy not-equal comparison node (`lhs != rhs`).  `operator bool()` returns the result.
@@ -134,7 +133,7 @@ template<typename T, typename L, typename R>
 struct Neq : public Comparison<Neq<T, L, R>, T, L, R>{
     using Base = Comparison<Neq<T, L, R>, T, L, R>;
     using Base::Base;
-    using tag = NEQ;
+    using tag = lazy::tags::NEQ;
 };
 
 /// @brief Lazy greater-or-equal comparison node (`lhs >= rhs`).  `operator bool()` returns the result.
@@ -142,7 +141,7 @@ template<typename T, typename L, typename R>
 struct Ge : public Comparison<Ge<T, L, R>, T, L, R>{
     using Base = Comparison<Ge<T, L, R>, T, L, R>;
     using Base::Base;
-    using tag = GE;
+    using tag = lazy::tags::GE;
 };
 
 /// @brief Lazy less-or-equal comparison node (`lhs <= rhs`).  `operator bool()` returns the result.
@@ -150,7 +149,7 @@ template<typename T, typename L, typename R>
 struct Le : public Comparison<Le<T, L, R>, T, L, R>{
     using Base = Comparison<Le<T, L, R>, T, L, R>;
     using Base::Base;
-    using tag = LE;
+    using tag = lazy::tags::LE;
 };
 
 

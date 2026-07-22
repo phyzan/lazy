@@ -6,19 +6,9 @@
  * @brief Compile-time symbolic expression pattern types for the lazy evaluation library.
  *
  * This header defines a hierarchy of pure type-level "pattern" descriptors that mirror
- * the runtime expression tree defined in lazy.hpp.  Patterns have no data members and
+ * the compile-time expression tree defined in lazy.hpp.  Patterns have no data members and
  * exist solely at the type level, enabling compile-time structural matching over
  * expression trees.
- *
- * ### Pattern operator overloads
- * Arithmetic and comparison operators are overloaded for any argument satisfying
- * `isAnyPattern`, so you can write e.g.
- * @code
- *   struct X : Pattern {};  struct Y : Pattern {};
- *   using MyPat = decltype(X{} * Y{} + X{});  // Multiplication<X,Y> + X
- * @endcode
- *
- * All types live in the `lazy` namespace.
  */
 
 #include <type_traits>
@@ -39,10 +29,31 @@
  */
 #define LAZY_UNARY_PATTERN_REQUIREMENT(Arg) (traits::isAnyPattern<Arg>)
 
-namespace lazy {
+
+#define LAZY_UNARY_PATTERN_OP(NAME) \
+template<typename Arg> \
+struct NAME : public PatternUnaryOp<NAME<Arg>, Arg> { \
+    template<typename ArgNEW> \
+    using MakeNew = NAME<ArgNEW>; \
+};
+
+#define LAZY_BINARY_PATTERN_OP(NAME) \
+template<typename L, typename R> \
+struct NAME : public PatternBinaryOp<NAME<L,R>, L, R> { \
+    template<typename LNEW, typename RNEW> \
+    using MakeNew = NAME<LNEW, RNEW>; \
+};
+
+#define LAZY_COMPARISON_PATTERN_OP(NAME) \
+template<typename L, typename R> \
+struct NAME : public ComparisonPattern<NAME<L, R>, L, R> { \
+    template<typename LNEW, typename RNEW> \
+    using MakeNew = NAME<LNEW, RNEW>; \
+};
+
+namespace lazy::patterns {
 // ======================== Pattern base ========================
 
-namespace detail{
 /**
  * @brief Base tag for all compile-time pattern types.
  *
@@ -77,7 +88,7 @@ template<typename L, typename R> struct Max;
 /// @endcond
 
 
-} // namespace detail
+
 
 
 namespace traits{
@@ -91,71 +102,71 @@ namespace traits{
  * operand satisfies `isAnyPattern`), they do not interfere with runtime arithmetic.
  */
 template<typename U>
-concept isAnyPattern = std::is_base_of_v<detail::Pattern, std::decay_t<U>>;
+concept isAnyPattern = std::is_base_of_v<Pattern, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `Addition<L,R>` pattern (or derived type).
 template<typename U>
-concept isAnyAddition = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::Addition<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyAddition = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<Addition<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `Subtraction<L,R>` pattern (or derived type).
 template<typename U>
-concept isAnySubtraction = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::Subtraction<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnySubtraction = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<Subtraction<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `Multiplication<L,R>` pattern (or derived type).
 template<typename U>
-concept isAnyMultiplication = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::Multiplication<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyMultiplication = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<Multiplication<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `Division<L,R>` pattern (or derived type).
 template<typename U>
-concept isAnyDivision = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::Division<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyDivision = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<Division<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `Power<L,R>` pattern (or derived type).
 template<typename U>
-concept isAnyPower = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::Power<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyPower = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<Power<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `Negation<Arg>` pattern (or derived type).
 template<typename U>
-concept isAnyNegation = requires {typename std::decay_t<U>::ArgType;} && std::is_base_of_v<detail::Negation<typename std::decay_t<U>::ArgType>, std::decay_t<U>>;
+concept isAnyNegation = requires {typename std::decay_t<U>::ArgType;} && std::is_base_of_v<Negation<typename std::decay_t<U>::ArgType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `AbsoluteValue<Arg>` pattern (or derived type).
 template<typename U>
-concept isAnyAbsoluteValue = requires {typename std::decay_t<U>::ArgType;} && std::is_base_of_v<detail::AbsoluteValue<typename std::decay_t<U>::ArgType>, std::decay_t<U>>;
+concept isAnyAbsoluteValue = requires {typename std::decay_t<U>::ArgType;} && std::is_base_of_v<AbsoluteValue<typename std::decay_t<U>::ArgType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `SquareRoot<Arg>` pattern (or derived type).
 template<typename U>
-concept isAnySquareRoot = requires {typename std::decay_t<U>::ArgType;} && std::is_base_of_v<detail::SquareRoot<typename std::decay_t<U>::ArgType>, std::decay_t<U>>;
+concept isAnySquareRoot = requires {typename std::decay_t<U>::ArgType;} && std::is_base_of_v<SquareRoot<typename std::decay_t<U>::ArgType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `LessThan<L,R>` comparison pattern (or derived type).
 template<typename U>
-concept isAnyLessThan = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::LessThan<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyLessThan = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<LessThan<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `GreaterThan<L,R>` comparison pattern (or derived type).
 template<typename U>
-concept isAnyGreaterThan = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::GreaterThan<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyGreaterThan = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<GreaterThan<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `Equal<L,R>` comparison pattern (or derived type).
 template<typename U>
-concept isAnyEqual = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::Equal<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyEqual = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<Equal<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `NotEqual<L,R>` comparison pattern (or derived type).
 template<typename U>
-concept isAnyNotEqual = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::NotEqual<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyNotEqual = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<NotEqual<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `LessEqual<L,R>` comparison pattern (or derived type).
 template<typename U>
-concept isAnyLessEqual = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::LessEqual<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyLessEqual = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<LessEqual<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `GreaterEqual<L,R>` comparison pattern (or derived type).
 template<typename U>
-concept isAnyGreaterEqual = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::GreaterEqual<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyGreaterEqual = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<GreaterEqual<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `Min<L,R>` pattern (or derived type).
 template<typename U>
-concept isAnyMin = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::Min<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyMin = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<Min<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /// @brief Satisfied when `U` is any `Max<L,R>` pattern (or derived type).
 template<typename U>
-concept isAnyMax = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<detail::Max<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
+concept isAnyMax = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<Max<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /**
  * @brief Satisfied when `Derived` is a `PatternNode` with a known `Nbranches`.
@@ -165,7 +176,7 @@ concept isAnyMax = requires {typename std::decay_t<U>::LhsType; typename std::de
 template<typename Derived>
 concept isPatternNode = requires {
     std::decay_t<Derived>::Nbranches;
-} && std::is_base_of_v<detail::PatternNode<std::decay_t<Derived>, std::decay_t<Derived>::Nbranches>, std::decay_t<Derived>>;
+} && std::is_base_of_v<PatternNode<std::decay_t<Derived>, std::decay_t<Derived>::Nbranches>, std::decay_t<Derived>>;
 
 /**
  * @brief Satisfied when `Derived` is a `PatternBinaryOp` with `LhsType` and `RhsType`.
@@ -174,7 +185,7 @@ template<typename Derived>
 concept isPatternBinaryOp = requires {
     typename std::decay_t<Derived>::LhsType;
     typename std::decay_t<Derived>::RhsType;
-} && std::is_base_of_v<detail::PatternBinaryOp<std::decay_t<Derived>, typename std::decay_t<Derived>::LhsType, typename std::decay_t<Derived>::RhsType>, std::decay_t<Derived>>;
+} && std::is_base_of_v<PatternBinaryOp<std::decay_t<Derived>, typename std::decay_t<Derived>::LhsType, typename std::decay_t<Derived>::RhsType>, std::decay_t<Derived>>;
 
 /**
  * @brief Satisfied when `Derived` is a `PatternUnaryOp` with an `ArgType`.
@@ -182,13 +193,11 @@ concept isPatternBinaryOp = requires {
 template<typename Derived>
 concept isPatternUnaryOp = requires {
     typename std::decay_t<Derived>::ArgType;
-} && std::is_base_of_v<detail::PatternUnaryOp<std::decay_t<Derived>, typename std::decay_t<Derived>::ArgType>, std::decay_t<Derived>>;
+} && std::is_base_of_v<PatternUnaryOp<std::decay_t<Derived>, typename std::decay_t<Derived>::ArgType>, std::decay_t<Derived>>;
 
 
 } // namespace traits
 
-
-namespace detail{
 
 // ======================== Base structs ========================
 
@@ -239,98 +248,6 @@ struct PatternUnaryOp : public PatternNode<Derived, 1> {
 };
 
 
-
-// ======================== Binary operations ========================
-
-/**
- * @brief Pattern type for addition (`L + R`).
- * @tparam L Pattern of the left operand.
- * @tparam R Pattern of the right operand.
- */
-template<typename L, typename R>
-struct Addition : public PatternBinaryOp<Addition<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = Addition<LNEW, RNEW>;
-};
-
-/**
- * @brief Pattern type for subtraction (`L - R`).
- * @tparam L Pattern of the left operand.
- * @tparam R Pattern of the right operand.
- */
-template<typename L, typename R>
-struct Subtraction : public PatternBinaryOp<Subtraction<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = Subtraction<LNEW, RNEW>;
-};
-
-/**
- * @brief Pattern type for multiplication (`L * R`).
- * @tparam L Pattern of the left operand.
- * @tparam R Pattern of the right operand.
- */
-template<typename L, typename R>
-struct Multiplication : public PatternBinaryOp<Multiplication<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = Multiplication<LNEW, RNEW>;
-};
-
-/**
- * @brief Pattern type for division (`L / R`).
- * @tparam L Pattern of the left operand.
- * @tparam R Pattern of the right operand.
- */
-template<typename L, typename R>
-struct Division : public PatternBinaryOp<Division<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = Division<LNEW, RNEW>;
-};
-
-/**
- * @brief Pattern type for exponentiation (`pow(L, R)`).
- * @tparam L Pattern of the base.
- * @tparam R Pattern of the exponent.
- */
-template<typename L, typename R>
-struct Power : public PatternBinaryOp<Power<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = Power<LNEW, RNEW>;
-};
-
-// ======================== Unary operations ========================
-
-/**
- * @brief Pattern type for unary negation (`-Arg`).
- * @tparam Arg Pattern of the operand.
- */
-template<typename Arg>
-struct Negation : public PatternUnaryOp<Negation<Arg>, Arg> {
-    template<typename ArgNEW>
-    using MakeNew = Negation<ArgNEW>;
-};
-
-/**
- * @brief Pattern type for absolute value (`abs(Arg)`).
- * @tparam Arg Pattern of the operand.
- */
-template<typename Arg>
-struct AbsoluteValue : public PatternUnaryOp<AbsoluteValue<Arg>, Arg> {
-    template<typename ArgNEW>
-    using MakeNew = AbsoluteValue<ArgNEW>;
-};
-
-/**
- * @brief Pattern type for square root (`sqrt(Arg)`).
- * @tparam Arg Pattern of the operand.
- */
-template<typename Arg>
-struct SquareRoot : public PatternUnaryOp<SquareRoot<Arg>, Arg> {
-    template<typename ArgNEW>
-    using MakeNew = SquareRoot<ArgNEW>;
-};
-
-// ======================== Comparison operations ========================
-
 /**
  * @brief Common base for all comparison/relational pattern types.
  * @tparam Derived Concrete comparison pattern (CRTP).
@@ -340,189 +257,52 @@ struct SquareRoot : public PatternUnaryOp<SquareRoot<Arg>, Arg> {
 template<typename Derived, typename L, typename R>
 struct ComparisonPattern : public PatternBinaryOp<Derived, L, R> {};
 
-/// @brief Pattern type for `L < R`.
-template<typename L, typename R>
-struct LessThan : public ComparisonPattern<LessThan<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = LessThan<LNEW, RNEW>;
-};
 
-/// @brief Pattern type for `L > R`.
-template<typename L, typename R>
-struct GreaterThan : public ComparisonPattern<GreaterThan<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = GreaterThan<LNEW, RNEW>;
-};
-
-/// @brief Pattern type for `L == R`.
-template<typename L, typename R>
-struct Equal : public ComparisonPattern<Equal<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = Equal<LNEW, RNEW>;
-};
-
-/// @brief Pattern type for `L != R`.
-template<typename L, typename R>
-struct NotEqual : public ComparisonPattern<NotEqual<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = NotEqual<LNEW, RNEW>;
-};
-
-/// @brief Pattern type for `L <= R`.
-template<typename L, typename R>
-struct LessEqual : public ComparisonPattern<LessEqual<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = LessEqual<LNEW, RNEW>;
-};
-
-/// @brief Pattern type for `L >= R`.
-template<typename L, typename R>
-struct GreaterEqual : public ComparisonPattern<GreaterEqual<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = GreaterEqual<LNEW, RNEW>;
-};
-
-// ======================== Min/Max operations ========================
-
-/// @brief Pattern type for `min(L, R)`.
-template<typename L, typename R>
-struct Min : public PatternBinaryOp<Min<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = Min<LNEW, RNEW>;
-};
-
-/// @brief Pattern type for `max(L, R)`.
-template<typename L, typename R>
-struct Max : public PatternBinaryOp<Max<L, R>, L, R> {
-    template<typename LNEW, typename RNEW>
-    using MakeNew = Max<LNEW, RNEW>;
-};
+// ======================== Binary operations ========================
 
 
-// ======================== Operator overloads ========================
-//
-// All operators below take pattern arguments *by value* and return a new pattern
-// type.  They are purely compile-time: invoking them creates a zero-cost type-level
-// composition.  Because they require LAZY_PATTERN_REQUIREMENT, they only match when at
-// least one operand is already a Pattern, so they do not interfere with runtime
-// arithmetic overloads in lazy.hpp.
+LAZY_BINARY_PATTERN_OP(Addition)
+LAZY_BINARY_PATTERN_OP(Subtraction)
+LAZY_BINARY_PATTERN_OP(Multiplication)
+LAZY_BINARY_PATTERN_OP(Division)
+LAZY_BINARY_PATTERN_OP(Power)
+LAZY_BINARY_PATTERN_OP(Min)
+LAZY_BINARY_PATTERN_OP(Max)
 
-/// @brief Compose two patterns into `Addition<L,R>`.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto operator+(L, R) {
-    return detail::Addition<L, R>{};
-}
+// ======================== Unary operations ========================
 
-/// @brief Compose two patterns into `Subtraction<L,R>`.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto operator-(L, R) {
-    return detail::Subtraction<L, R>{};
-}
 
-/// @brief Compose two patterns into `Multiplication<L,R>`.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto operator*(L, R) {
-    return detail::Multiplication<L, R>{};
-}
+LAZY_UNARY_PATTERN_OP(Negation)
+LAZY_UNARY_PATTERN_OP(AbsoluteValue)
+LAZY_UNARY_PATTERN_OP(SquareRoot)
+LAZY_UNARY_PATTERN_OP(Exponential)
+LAZY_UNARY_PATTERN_OP(Logarithm)
+LAZY_UNARY_PATTERN_OP(Sine)
+LAZY_UNARY_PATTERN_OP(Cosine)
+LAZY_UNARY_PATTERN_OP(Tangent)
+LAZY_UNARY_PATTERN_OP(Cotangent)
+LAZY_UNARY_PATTERN_OP(Secant)
+LAZY_UNARY_PATTERN_OP(Cosecant)
+LAZY_UNARY_PATTERN_OP(ArcSine)
+LAZY_UNARY_PATTERN_OP(ArcCosine)
+LAZY_UNARY_PATTERN_OP(ArcTangent)
+LAZY_UNARY_PATTERN_OP(ArcCotangent)
+LAZY_UNARY_PATTERN_OP(ArcSecant)
+LAZY_UNARY_PATTERN_OP(ArcCosecant)
+LAZY_UNARY_PATTERN_OP(HyperbolicSine)
+LAZY_UNARY_PATTERN_OP(HyperbolicCosine)
+LAZY_UNARY_PATTERN_OP(HyperbolicTangent)
+LAZY_UNARY_PATTERN_OP(ErrorFunction)
 
-/// @brief Compose two patterns into `Division<L,R>`.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto operator/(L, R) {
-    return detail::Division<L, R>{};
-}
+// ======================== Comparison operations ========================
 
-/// @brief Build a `Negation<Arg>` pattern from a unary minus on a pattern.
-template<typename Arg>
-requires LAZY_UNARY_PATTERN_REQUIREMENT(Arg)
-constexpr auto operator-(Arg) {
-    return detail::Negation<Arg>{};
-}
+LAZY_COMPARISON_PATTERN_OP(LessThan)
+LAZY_COMPARISON_PATTERN_OP(GreaterThan)
+LAZY_COMPARISON_PATTERN_OP(Equal)
+LAZY_COMPARISON_PATTERN_OP(NotEqual)
+LAZY_COMPARISON_PATTERN_OP(LessEqual)
+LAZY_COMPARISON_PATTERN_OP(GreaterEqual)
 
-/// @brief Build a `Power<Base,Exp>` pattern.
-template<typename Base, typename Exp>
-requires LAZY_PATTERN_REQUIREMENT(Base, Exp)
-constexpr auto pow(Base, Exp) {
-    return detail::Power<Base, Exp>{};
-}
-
-/// @brief Build an `AbsoluteValue<Arg>` pattern.
-template<typename Arg>
-requires LAZY_UNARY_PATTERN_REQUIREMENT(Arg)
-constexpr auto abs(Arg) {
-    return detail::AbsoluteValue<Arg>{};
-}
-
-/// @brief Build a `SquareRoot<Arg>` pattern.
-template<typename Arg>
-requires LAZY_UNARY_PATTERN_REQUIREMENT(Arg)
-constexpr auto sqrt(Arg) {
-    return detail::SquareRoot<Arg>{};
-}
-
-/// @brief Build a `Min<L,R>` pattern.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto min(L, R) {
-    return detail::Min<L, R>{};
-}
-
-/// @brief Build a `Max<L,R>` pattern.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto max(L, R) {
-    return detail::Max<L, R>{};
-}
-
-// ======================== Comparison operator overloads ========================
-
-/// @brief Build a `LessThan<L,R>` comparison pattern.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto operator<(L, R) {
-    return detail::LessThan<L, R>{};
-}
-
-/// @brief Build a `GreaterThan<L,R>` comparison pattern.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto operator>(L, R) {
-    return detail::GreaterThan<L, R>{};
-}
-
-/// @brief Build an `Equal<L,R>` comparison pattern.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto operator==(L, R) {
-    return detail::Equal<L, R>{};
-}
-
-/// @brief Build a `NotEqual<L,R>` comparison pattern.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto operator!=(L, R) {
-    return detail::NotEqual<L, R>{};
-}
-
-/// @brief Build a `LessEqual<L,R>` comparison pattern.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto operator<=(L, R) {
-    return detail::LessEqual<L, R>{};
-}
-
-/// @brief Build a `GreaterEqual<L,R>` comparison pattern.
-template<typename L, typename R>
-requires LAZY_PATTERN_REQUIREMENT(L, R)
-constexpr auto operator>=(L, R) {
-    return detail::GreaterEqual<L, R>{};
-}
-
-} // namespace detail
-
-} // namespace lazy
+} // namespace lazy::patterns
 
 #endif // PATTERNS_HPP

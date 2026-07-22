@@ -63,18 +63,93 @@ LAZY_SPECIALIZE_FUNCTIONS(mpfr::mpreal){
     using Base::evaluate;
 
     // neg
-    LAZY_EVALUATE_FUNC(T, a, NEG, T){
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::NEG, T){
         mpfr_neg(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // abs
-    LAZY_EVALUATE_FUNC(T, a, ABS, T){
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::ABS, T){
         mpfr_abs(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // sqrt
-    LAZY_EVALUATE_FUNC(T, a, SQRT, T){
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::SQRT, T){
         mpfr_sqrt(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // exp
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::EXP, T){
+        mpfr_exp(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // log
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::LOG, T){
+        mpfr_log(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // sin
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::SIN, T){
+        mpfr_sin(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // cos
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::COS, T){
+        mpfr_cos(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // tan
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::TAN, T){
+        mpfr_tan(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // cot
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::COT, T){
+        mpfr_cot(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // sec
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::SEC, T){
+        mpfr_sec(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // csc
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::CSC, T){
+        mpfr_csc(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // asin
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::ASIN, T){
+        mpfr_asin(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // acos
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::ACOS, T){
+        mpfr_acos(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // atan
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::ATAN, T){
+        mpfr_atan(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // sinh
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::SINH, T){
+        mpfr_sinh(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // cosh
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::COSH, T){
+        mpfr_cosh(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // tanh
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::TANH, T){
+        mpfr_tanh(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // erf
+    LAZY_EVALUATE_FUNC(T, a, lazy::tags::ERF, T){
+        mpfr_erf(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
 };
@@ -112,209 +187,107 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
     using Base::eval_rule;
 
     // mpreal with mpreal
-    LAZY_EVALUATE_OPER(T, a, b, T, PLUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::PLUS, T){
         mpfr_add(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with double
-    LAZY_EVALUATE_OPER(T, a, b, T, PLUS, double){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::PLUS, double){
         mpfr_add_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, double, PLUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, double, lazy::tags::PLUS, T){
         mpfr_add_d(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with int
-    LAZY_EVALUATE_OPER(T, a, b, T, PLUS, int){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::PLUS, int){
         mpfr_add_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, int, PLUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, int, lazy::tags::PLUS, T){
         mpfr_add_si(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with float
-    LAZY_EVALUATE_OPER(T, a, b, T, PLUS, float){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::PLUS, float){
         mpfr_add_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, float, PLUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, float, lazy::tags::PLUS, T){
         mpfr_add_d(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with long
-    LAZY_EVALUATE_OPER(T, a, b, T, PLUS, long){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::PLUS, long){
         mpfr_add_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, long, PLUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, long, lazy::tags::PLUS, T){
         mpfr_add_si(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with size_t
-    LAZY_EVALUATE_OPER(T, a, b, T, PLUS, size_t){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::PLUS, size_t){
         mpfr_add_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, size_t, PLUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, size_t, lazy::tags::PLUS, T){
         mpfr_add_ui(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
     }
 
 
 
-    // mpreal with mpreal
-    LAZY_EVALUATE_OPER(T, a, b, T, MUL, T){
-        mpfr_mul(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
-    }
 
-    // mpreal with double
-    LAZY_EVALUATE_OPER(T, a, b, T, MUL, double){
-        mpfr_mul_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
-    }
-
-    LAZY_EVALUATE_OPER(T, a, b, double, MUL, T){
-        mpfr_mul_d(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
-    }
-
-    // mpreal with int
-    LAZY_EVALUATE_OPER(T, a, b, T, MUL, int){
-        mpfr_mul_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
-    }
-
-    LAZY_EVALUATE_OPER(T, a, b, int, MUL, T){
-        mpfr_mul_si(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
-    }
-
-    // mpreal with float
-    LAZY_EVALUATE_OPER(T, a, b, T, MUL, float){
-        mpfr_mul_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
-    }
-
-    LAZY_EVALUATE_OPER(T, a, b, float, MUL, T){
-        mpfr_mul_d(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
-    }
-
-    // mpreal with long
-    LAZY_EVALUATE_OPER(T, a, b, T, MUL, long){
-        mpfr_mul_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
-    }
-
-    LAZY_EVALUATE_OPER(T, a, b, long, MUL, T){
-        mpfr_mul_si(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
-    }
-
-    // mpreal with size_t
-    LAZY_EVALUATE_OPER(T, a, b, T, MUL, size_t){
-        mpfr_mul_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
-    }
-
-    LAZY_EVALUATE_OPER(T, a, b, size_t, MUL, T){
-        mpfr_mul_ui(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
-    }
-
-    // mpreal with mpreal
-    LAZY_EVALUATE_OPER(T, a, b, T, DIV, T){
-        mpfr_div(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
-    }
-
-    // mpreal with double
-    LAZY_EVALUATE_OPER(T, a, b, T, DIV, double){
-
-        mpfr_div_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
-    }
-
-    LAZY_EVALUATE_OPER(T, a, b, double, DIV, T){
-        mpfr_d_div(out.mpfr_ptr(), a, b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
-    }
-
-    // mpreal with int
-    LAZY_EVALUATE_OPER(T, a, b, T, DIV, int){
-        mpfr_div_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
-    }
-
-    LAZY_EVALUATE_OPER(T, a, b, int, DIV, T){
-        mpfr_set_si(out.mpfr_ptr(), a, mpfr::mpreal::get_default_rnd());
-        mpfr_div(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
-    }
-
-    // mpreal with float
-    LAZY_EVALUATE_OPER(T, a, b, T, DIV, float){
-        mpfr_div_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
-    }
-
-    LAZY_EVALUATE_OPER(T, a, b, float, DIV, T){
-        mpfr_d_div(out.mpfr_ptr(), a, b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
-    }
-
-    // mpreal with long
-    LAZY_EVALUATE_OPER(T, a, b, T, DIV, long){
-        mpfr_div_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
-    }
-
-    LAZY_EVALUATE_OPER(T, a, b, long, DIV, T){
-        mpfr_set_si(out.mpfr_ptr(), a, mpfr::mpreal::get_default_rnd());
-        mpfr_div(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
-    }
-
-    // mpreal with size_t
-    LAZY_EVALUATE_OPER(T, a, b, T, DIV, size_t){
-        mpfr_div_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
-    }
-
-    LAZY_EVALUATE_OPER(T, a, b, size_t, DIV, T){
-        mpfr_set_ui(out.mpfr_ptr(), a, mpfr::mpreal::get_default_rnd());
-        mpfr_div(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
-    }
 
 
     // mpreal with mpreal
-    LAZY_EVALUATE_OPER(T, a, b, T, MINUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MINUS, T){
         mpfr_sub(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with double
-    LAZY_EVALUATE_OPER(T, a, b, T, MINUS, double){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MINUS, double){
         mpfr_sub_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, double, MINUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, double, lazy::tags::MINUS, T){
         mpfr_d_sub(out.mpfr_ptr(), a, b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with int
-    LAZY_EVALUATE_OPER(T, a, b, T, MINUS, int){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MINUS, int){
         mpfr_sub_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, int, MINUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, int, lazy::tags::MINUS, T){
         mpfr_si_sub(out.mpfr_ptr(), a, b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with float
-    LAZY_EVALUATE_OPER(T, a, b, T, MINUS, float){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MINUS, float){
         mpfr_sub_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, float, MINUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, float, lazy::tags::MINUS, T){
         mpfr_d_sub(out.mpfr_ptr(), a, b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with long
-    LAZY_EVALUATE_OPER(T, a, b, T, MINUS, long){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MINUS, long){
         mpfr_sub_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, long, MINUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, long, lazy::tags::MINUS, T){
         mpfr_si_sub(out.mpfr_ptr(), a, b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with size_t
-    LAZY_EVALUATE_OPER(T, a, b, T, MINUS, size_t){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MINUS, size_t){
         mpfr_sub_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, size_t, MINUS, T){
+    LAZY_EVALUATE_OPER(T, a, b, size_t, lazy::tags::MINUS, T){
         mpfr_ui_sub(out.mpfr_ptr(), a, b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
@@ -324,82 +297,200 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
 
 
 
+    // mpreal with mpreal
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MUL, T){
+        mpfr_mul(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // mpreal with double
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MUL, double){
+        mpfr_mul_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
+    }
+
+    LAZY_EVALUATE_OPER(T, a, b, double, lazy::tags::MUL, T){
+        mpfr_mul_d(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
+    }
+
+    // mpreal with int
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MUL, int){
+        mpfr_mul_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
+    }
+
+    LAZY_EVALUATE_OPER(T, a, b, int, lazy::tags::MUL, T){
+        mpfr_mul_si(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
+    }
+
+    // mpreal with float
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MUL, float){
+        mpfr_mul_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
+    }
+
+    LAZY_EVALUATE_OPER(T, a, b, float, lazy::tags::MUL, T){
+        mpfr_mul_d(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
+    }
+
+    // mpreal with long
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MUL, long){
+        mpfr_mul_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
+    }
+
+    LAZY_EVALUATE_OPER(T, a, b, long, lazy::tags::MUL, T){
+        mpfr_mul_si(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
+    }
+
+    // mpreal with size_t
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MUL, size_t){
+        mpfr_mul_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
+    }
+
+    LAZY_EVALUATE_OPER(T, a, b, size_t, lazy::tags::MUL, T){
+        mpfr_mul_ui(out.mpfr_ptr(), b.mpfr_srcptr(), a, mpfr::mpreal::get_default_rnd());
+    }
+
+
+
+
+
+
+
 
     // mpreal with mpreal
-    LAZY_EVALUATE_OPER(T, a, b, T, POW, T){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::DIV, T){
+        mpfr_div(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // mpreal with double
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::DIV, double){
+
+        mpfr_div_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
+    }
+
+    LAZY_EVALUATE_OPER(T, a, b, double, lazy::tags::DIV, T){
+        mpfr_d_div(out.mpfr_ptr(), a, b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // mpreal with int
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::DIV, int){
+        mpfr_div_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
+    }
+
+    LAZY_EVALUATE_OPER(T, a, b, int, lazy::tags::DIV, T){
+        mpfr_set_si(out.mpfr_ptr(), a, mpfr::mpreal::get_default_rnd());
+        mpfr_div(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // mpreal with float
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::DIV, float){
+        mpfr_div_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
+    }
+
+    LAZY_EVALUATE_OPER(T, a, b, float, lazy::tags::DIV, T){
+        mpfr_d_div(out.mpfr_ptr(), a, b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // mpreal with long
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::DIV, long){
+        mpfr_div_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
+    }
+
+    LAZY_EVALUATE_OPER(T, a, b, long, lazy::tags::DIV, T){
+        mpfr_set_si(out.mpfr_ptr(), a, mpfr::mpreal::get_default_rnd());
+        mpfr_div(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+    // mpreal with size_t
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::DIV, size_t){
+        mpfr_div_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
+    }
+
+    LAZY_EVALUATE_OPER(T, a, b, size_t, lazy::tags::DIV, T){
+        mpfr_set_ui(out.mpfr_ptr(), a, mpfr::mpreal::get_default_rnd());
+        mpfr_div(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
+
+
+
+
+
+
+    // mpreal with mpreal
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::POW, T){
         mpfr_pow(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with double
-    LAZY_EVALUATE_OPER(T, a, b, T, POW, double){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::POW, double){
         mpfr_set_d(out.mpfr_ptr(), b, mpfr::mpreal::get_default_rnd());
         mpfr_pow(out.mpfr_ptr(), a.mpfr_srcptr(), out.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, double, POW, T){
+    LAZY_EVALUATE_OPER(T, a, b, double, lazy::tags::POW, T){
         mpfr_set_d(out.mpfr_ptr(), a, mpfr::mpreal::get_default_rnd());
         mpfr_pow(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with int
-    LAZY_EVALUATE_OPER(T, a, b, T, POW, int){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::POW, int){
         mpfr_pow_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, int, POW, T){
+    LAZY_EVALUATE_OPER(T, a, b, int, lazy::tags::POW, T){
         mpfr_set_si(out.mpfr_ptr(), a, mpfr::mpreal::get_default_rnd());
         mpfr_pow(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with float
-    LAZY_EVALUATE_OPER(T, a, b, T, POW, float){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::POW, float){
         mpfr_set_d(out.mpfr_ptr(), static_cast<double>(b), mpfr::mpreal::get_default_rnd());
         mpfr_pow(out.mpfr_ptr(), a.mpfr_srcptr(), out.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, float, POW, T){
+    LAZY_EVALUATE_OPER(T, a, b, float, lazy::tags::POW, T){
         mpfr_set_d(out.mpfr_ptr(), static_cast<double>(a), mpfr::mpreal::get_default_rnd());
         mpfr_pow(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with long
-    LAZY_EVALUATE_OPER(T, a, b, T, POW, long){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::POW, long){
         mpfr_pow_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, long, POW, T){
+    LAZY_EVALUATE_OPER(T, a, b, long, lazy::tags::POW, T){
         mpfr_set_si(out.mpfr_ptr(), a, mpfr::mpreal::get_default_rnd());
         mpfr_pow(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // mpreal with size_t
-    LAZY_EVALUATE_OPER(T, a, b, T, POW, size_t){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::POW, size_t){
         mpfr_pow_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, mpfr::mpreal::get_default_rnd());
     }
 
-    LAZY_EVALUATE_OPER(T, a, b, size_t, POW, T){
+    LAZY_EVALUATE_OPER(T, a, b, size_t, lazy::tags::POW, T){
         mpfr_set_ui(out.mpfr_ptr(), a, mpfr::mpreal::get_default_rnd());
         mpfr_pow(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
-    // max
-    LAZY_EVALUATE_OPER(T, a, b, T, MAX, T){
-        mpfr_max(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
-    }
+
+
 
     // min
-    LAZY_EVALUATE_OPER(T, a, b, T, MIN, T){
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MIN, T){
         mpfr_min(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
+    // max
+    LAZY_EVALUATE_OPER(T, a, b, T, lazy::tags::MAX, T){
+        mpfr_max(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
+    }
 
 
 
-    using Mul_T_T = Multiplication<T, T>;
-    using Add_T_T = Addition<T, T>;
+
+    using Mul_T_T = lazy::patterns::Multiplication<T, T>;
+    using Add_T_T = lazy::patterns::Addition<T, T>;
 
     /// 3-operand sum: `a + (b + c)` via `mpfr_sum` for improved accuracy.
-    LAZY_OVERRIDE_OPER(T, a, b, T, PLUS, Add_T_T){
+    LAZY_OVERRIDE_OPER(T, a, b, T, lazy::tags::PLUS, Add_T_T){
         // b is an Add expression with lhs and rhs
         T& a_mut = const_cast<T&>(a.value());
         T& b_lhs_mut = const_cast<T&>(b.lhs.value());
@@ -409,7 +500,7 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
     }
 
     /// Fused multiply-add: `a + b*c` via `mpfr_fma`.
-    LAZY_OVERRIDE_OPER(T, a, b, T, PLUS, Mul_T_T){
+    LAZY_OVERRIDE_OPER(T, a, b, T, lazy::tags::PLUS, Mul_T_T){
         // b is a Mul expression with lhs and rhs
         mpfr_fma(out.mpfr_ptr(),
                  b.lhs.value().mpfr_srcptr(),
@@ -419,7 +510,7 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
     }
 
     /// Fused multiply-add (commuted): `a*b + c` via `mpfr_fma`.
-    LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, PLUS, T){
+    LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, lazy::tags::PLUS, T){
         mpfr_fma(out.mpfr_ptr(),
                  a.lhs.value().mpfr_srcptr(),
                  a.rhs.value().mpfr_srcptr(),
@@ -428,7 +519,7 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
     }
 
     /// Fused multiply-subtract: `a*b - c` via `mpfr_fms`.
-    LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, MINUS, T){
+    LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, lazy::tags::MINUS, T){
         mpfr_fms(out.mpfr_ptr(),
                  a.lhs.value().mpfr_srcptr(),
                  a.rhs.value().mpfr_srcptr(),
@@ -437,7 +528,7 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
     }
 
     /// Negated fused multiply-subtract: `c - a*b` via `mpfr_fms` followed by negation.
-    LAZY_OVERRIDE_OPER(T, a, b, T, MINUS, Mul_T_T){
+    LAZY_OVERRIDE_OPER(T, a, b, T, lazy::tags::MINUS, Mul_T_T){
         mpfr_fms(out.mpfr_ptr(),
                  b.lhs.value().mpfr_srcptr(),
                  b.rhs.value().mpfr_srcptr(),
@@ -448,7 +539,7 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
 
 #if MPFR_VERSION >= MPFR_VERSION_NUM(4, 0, 0)
     /// Fused multiply-multiply-add: `a*b + c*d` via `mpfr_fmma` (MPFR >= 4.0).
-    LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, PLUS, Mul_T_T){
+    LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, lazy::tags::PLUS, Mul_T_T){
         mpfr_fmma(out.mpfr_ptr(),
                   a.lhs.value().mpfr_srcptr(),
                   a.rhs.value().mpfr_srcptr(),
@@ -458,7 +549,7 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
     }
 
     /// Fused multiply-multiply-subtract: `a*b - c*d` via `mpfr_fmms` (MPFR >= 4.0).
-    LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, MINUS, Mul_T_T){
+    LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, lazy::tags::MINUS, Mul_T_T){
         mpfr_fmms(out.mpfr_ptr(),
                   a.lhs.value().mpfr_srcptr(),
                   a.rhs.value().mpfr_srcptr(),

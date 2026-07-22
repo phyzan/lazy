@@ -2,48 +2,8 @@
 #define LAZY_DECLS_HPP
 
 
-/**
- * @file lazy.hpp
- * @brief Core expression-template library for lazy arithmetic evaluation.
- *
- * This header implements a compile-time expression tree that defers numeric
- * computation until explicitly requested, enabling:
- *
- * - **Zero-overhead abstraction** — arithmetic operators on `LazyType<T>` or any
- *   other expression node return lightweight node objects; no floating-point work is
- *   done until `eval()` is called (or the node is implicitly converted to `T`).
- * - **Custom evaluation rules** — specialise `CustomBinaryRules<T>` and
- *   `CustomUnaryRules<T>` to override how specific operations are performed for type
- *   `T` (e.g. use MPFR intrinsics instead of `operator+`).
- * - **Thread-safe temporary storage** — each unique expression type gets its own
- *   thread-local scratch allocation via `RuleTree<T,…>`.
- *
- * ### Typical usage
- * @code
- *   #include "lazy.hpp"
- *   using namespace lazy;
- *
- *   LazyType<double> x = 3.0, y = 4.0;
- *   auto expr = x * x + y * y;   // builds a node tree, no arithmetic yet
- *   double r;  expr.eval(r);      // r == 25.0
- *   double s = expr;              // implicit conversion also evaluates
- * @endcode
- *
- * ### Specialising operations for a custom type `Foo`
- * @code
- *   LAZY_SPECIALIZE_OPERATIONS(Foo) {
- *       using T = Foo;
- *       using Base = BinaryOpRules<CustomBinaryRules<Foo>, Foo>;
- *       using Base::evaluate;
- *       LAZY_EVALUATE_OPER(T, a, b, T, PLUS, T) { out = fast_add(a, b); }
- *   };
- * @endcode
- *
- * All types live in the `lazy` namespace.  `patterns.hpp` is a prerequisite.
- */
-
-#include <vector>
 #include "patterns.hpp"
+#include "tags.hpp"
 
 
 // ============================================================================
@@ -137,9 +97,8 @@ constexpr bool lazy::traits::lazyConvertCondition<F, TYPE> = std::is_arithmetic_
  * @param FUNC     The function name (e.g. `abs`, `sqrt`).
  * @param OP       The node struct name (e.g. `Abs`, `Sqrt`).
  * @param TAG      The dispatch tag type (e.g. `ABS`, `SQRT`).
- * @param PATTERN  The pattern template (e.g. `AbsoluteValue`, `SquareRoot`).
  */
-#define LAZY_DEFINE_UNARY_OP(FUNC, OP, TAG, PATTERN)                             \
+#define LAZY_DEFINE_UNARY_OP(FUNC, OP, TAG)                             \
 template<typename T, typename Arg>                                              \
 struct OP : public Unary<OP<T, Arg>, T, Arg>, public CustomUnaryRules<T> {                \
     using Base = Unary<OP<T, Arg>, T, Arg>;                                     \
@@ -331,56 +290,6 @@ template<typename T, typename Arg> struct Abs;
 template<typename T> struct RefType;
 template<typename T, typename Type> struct OtherType;
 template<typename T> struct LazyType;
-
-
-// ============================================================================
-// Operation tag types
-// ============================================================================
-// Tags are empty structs used as the first argument to `evaluate` / `eval_rule`
-// to discriminate which arithmetic operation is being requested.  The hierarchy
-// is: Tag <- specific arithmetic/comparison tags.
-//            BOOL_TAG <- comparison-specific tags.
-
-/// @brief Root tag base.  All operation tags inherit from this.
-struct Tag{};
-/// @brief Tag for addition `+`.
-struct PLUS : public Tag{};
-/// @brief Tag for subtraction `-`.
-struct MINUS : public Tag{};
-/// @brief Tag for multiplication `*`.
-struct MUL : public Tag{};
-/// @brief Tag for division `/`.
-struct DIV : public Tag{};
-/// @brief Tag for exponentiation `pow`.
-struct POW : public Tag{};
-/// @brief Tag for `max(x,y)`.
-struct MAX : public Tag{};
-/// @brief Tag for `min(x,y)`.
-struct MIN : public Tag{};
-
-/// @brief Tag for unary negation `-x`.
-struct NEG : public Tag{};
-/// @brief Tag for `abs(x)`.
-struct ABS : public Tag{};
-/// @brief Tag for `sqrt(x)`.
-struct SQRT : public Tag{};
-
-/// @brief Base tag for all boolean/comparison operations.
-struct BOOL_TAG : public Tag{};
-
-/// @brief Tag for equality comparison `==`.
-struct EQ : public BOOL_TAG{};
-/// @brief Tag for inequality comparison `!=`.
-struct NEQ : public BOOL_TAG{};
-/// @brief Tag for greater-than comparison `>`.
-struct GT : public BOOL_TAG{};
-/// @brief Tag for less-than comparison `<`.
-struct LT : public BOOL_TAG{};
-/// @brief Tag for greater-or-equal comparison `>=`.
-struct GE : public BOOL_TAG{};
-/// @brief Tag for less-or-equal comparison `<=`.
-struct LE : public BOOL_TAG{};
-
 
 
 template<typename T, typename R>

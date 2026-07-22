@@ -22,7 +22,7 @@ struct Add : public BinaryOperator<Add<T, L, R>, T, L, R>, public CustomBinaryRu
 
     using Base = BinaryOperator<Add<T, L, R>, T, L, R>;
     static constexpr bool isAdd = true;
-    using tag = PLUS;
+    using tag = lazy::tags::PLUS;
     using Base::Base;
 
 };
@@ -38,7 +38,7 @@ struct Mul : public BinaryOperator<Mul<T, L, R>, T, L, R>, public CustomBinaryRu
     
     using Base = BinaryOperator<Mul<T, L, R>, T, L, R>;
     static constexpr bool isMul = true;
-    using tag = MUL;
+    using tag = lazy::tags::MUL;
     using Base::Base;
 
 };
@@ -54,7 +54,7 @@ struct Div : public BinaryOperator<Div<T, L, R>, T, L, R>, public CustomBinaryRu
     
     using Base = BinaryOperator<Div<T, L, R>, T, L, R>;
     static constexpr bool isDiv = true;
-    using tag = DIV;
+    using tag = lazy::tags::DIV;
     using Base::Base;
 
 };
@@ -69,7 +69,7 @@ template<typename T, typename L, typename R>
 struct Sub : public BinaryOperator<Sub<T, L, R>, T, L, R>, public CustomBinaryRules<T>{
     using Base = BinaryOperator<Sub<T, L, R>, T, L, R>;
     static constexpr bool isSub = true;
-    using tag = MINUS;
+    using tag = lazy::tags::MINUS;
     using Base::Base;
 
 };
@@ -84,7 +84,7 @@ template<typename T, typename L, typename R>
 struct Pow : public BinaryOperator<Pow<T, L, R>, T, L, R>, public CustomBinaryRules<T>{
     using Base = BinaryOperator<Pow<T, L, R>, T, L, R>;
     static constexpr bool isPow = true;
-    using tag = POW;
+    using tag = lazy::tags::POW;
     using Base::Base;
 
 };
@@ -103,7 +103,7 @@ template<typename T, typename L, typename R>
 struct MaxLazy : public BinaryOperator<MaxLazy<T, L, R>, T, L, R>, public CustomBinaryRules<T>{
     using Base = BinaryOperator<MaxLazy<T, L, R>, T, L, R>;
     using Base::Base;
-    using tag = MAX;
+    using tag = lazy::tags::MAX;
 };
 
 /**
@@ -119,7 +119,7 @@ template<typename T, typename L, typename R>
 struct MinLazy : public BinaryOperator<MinLazy<T, L, R>, T, L, R>, public CustomBinaryRules<T>{
     using Base = BinaryOperator<MinLazy<T, L, R>, T, L, R>;
     using Base::Base;
-    using tag = MIN;
+    using tag = lazy::tags::MIN;
 
 };
 
@@ -302,8 +302,8 @@ using lazy::detail::operator+,
       lazy::detail::operator*, 
       lazy::detail::operator/, 
       lazy::detail::pow, 
-      lazy::detail::max, 
-      lazy::detail::min;
+      lazy::detail::min, 
+      lazy::detail::max;
 
 } // namespace lazy
 

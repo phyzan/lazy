@@ -1,6 +1,7 @@
 #ifndef LAZY_IMPL_HPP
 #define LAZY_IMPL_HPP
 
+#include <vector>
 #include "lazy_decls.hpp"
 
 
@@ -72,10 +73,10 @@ template<typename Derived, typename T>
 concept isPow = requires { requires isBinOp<Derived, T>; } && std::is_base_of_v<lazy::detail::Pow<T, typename Derived::LhsType, typename Derived::RhsType>, Derived>;
 
 template<typename Arg>
-concept isTag = std::is_base_of_v<lazy::detail::Tag, std::decay_t<Arg>>;
+concept isTag = std::is_base_of_v<lazy::tags::Tag, std::decay_t<Arg>>;
 
 template<typename Arg>
-concept isBoolTag = std::is_base_of_v<lazy::detail::BOOL_TAG, std::decay_t<Arg>>;
+concept isBoolTag = std::is_base_of_v<lazy::tags::BOOL_TAG, std::decay_t<Arg>>;
 
 template<typename Derived, typename T>
 concept isRef = std::is_base_of_v<lazy::detail::RefType<T>, std::decay_t<Derived>>;
@@ -498,7 +499,7 @@ template<typename T, typename Arg>
 struct Neg : public Unary<Neg<T, Arg>, T, Arg>, public CustomUnaryRules<T>{
     using Base = Unary<Neg<T, Arg>, T, Arg>;
     static constexpr bool isNeg = true;
-    using tag = NEG;
+    using tag = lazy::tags::NEG;
 };
 
 /**
@@ -623,11 +624,11 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     template<typename U>
     LazyType& operator+=(U&& other){
         if constexpr (traits::isAtom<U, T>){
-            detail::CustomBinaryRules<T>::evaluate(detail::PLUS{}, value_, value_, other.value());
+            detail::CustomBinaryRules<T>::evaluate(lazy::tags::PLUS{}, value_, value_, other.value());
         } else if constexpr (traits::isNode<U, T>){
-            detail::CustomBinaryRules<T>::eval_rule(detail::PLUS{}, value_, detail::make_expr<T>(value_), other);
+            detail::CustomBinaryRules<T>::eval_rule(lazy::tags::PLUS{}, value_, detail::make_expr<T>(value_), other);
         } else {
-            detail::CustomBinaryRules<T>::evaluate(detail::PLUS{}, value_, value_, other);
+            detail::CustomBinaryRules<T>::evaluate(lazy::tags::PLUS{}, value_, value_, other);
         }
         return *this;
     }
@@ -635,11 +636,11 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     template<typename U>
     LazyType& operator*=(U&& other){
         if constexpr (traits::isAtom<U, T>){
-            detail::CustomBinaryRules<T>::evaluate(detail::MUL{}, value_, value_, other.value());
+            detail::CustomBinaryRules<T>::evaluate(lazy::tags::MUL{}, value_, value_, other.value());
         } else if constexpr (traits::isNode<U, T>){
-            detail::CustomBinaryRules<T>::eval_rule(detail::MUL{}, value_, detail::make_expr<T>(value_), other);
+            detail::CustomBinaryRules<T>::eval_rule(lazy::tags::MUL{}, value_, detail::make_expr<T>(value_), other);
         } else {
-            detail::CustomBinaryRules<T>::evaluate(detail::MUL{}, value_, value_, other);
+            detail::CustomBinaryRules<T>::evaluate(lazy::tags::MUL{}, value_, value_, other);
         }
         return *this;
     }
@@ -647,11 +648,11 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     template<typename U>
     LazyType& operator-=(U&& other){
         if constexpr (traits::isAtom<U, T>){
-            detail::CustomBinaryRules<T>::evaluate(detail::MINUS{}, value_, value_, other.value());
+            detail::CustomBinaryRules<T>::evaluate(lazy::tags::MINUS{}, value_, value_, other.value());
         } else if constexpr (traits::isNode<U, T>){
-            detail::CustomBinaryRules<T>::eval_rule(detail::MINUS{}, value_, detail::make_expr<T>(value_), other);
+            detail::CustomBinaryRules<T>::eval_rule(lazy::tags::MINUS{}, value_, detail::make_expr<T>(value_), other);
         } else {
-            detail::CustomBinaryRules<T>::evaluate(detail::MINUS{}, value_, value_, other);
+            detail::CustomBinaryRules<T>::evaluate(lazy::tags::MINUS{}, value_, value_, other);
         }
         return *this;
     }
@@ -659,11 +660,11 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     template<typename U>
     LazyType& operator/=(U&& other){
         if constexpr (traits::isAtom<U, T>){
-            detail::CustomBinaryRules<T>::evaluate(detail::DIV{}, value_, value_, other.value());
+            detail::CustomBinaryRules<T>::evaluate(lazy::tags::DIV{}, value_, value_, other.value());
         } else if constexpr (traits::isNode<U, T>){
-            detail::CustomBinaryRules<T>::eval_rule(detail::DIV{}, value_, detail::make_expr<T>(value_), other);
+            detail::CustomBinaryRules<T>::eval_rule(lazy::tags::DIV{}, value_, detail::make_expr<T>(value_), other);
         } else {
-            detail::CustomBinaryRules<T>::evaluate(detail::DIV{}, value_, value_, other);
+            detail::CustomBinaryRules<T>::evaluate(lazy::tags::DIV{}, value_, value_, other);
         }
         return *this;
     }
