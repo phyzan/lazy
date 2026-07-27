@@ -374,23 +374,23 @@ struct BinaryOpRules{
     */
 
     // IMPORTANT: a or b might be the same memory location as out.
-    template<traits::isTag tag, typename L, typename R>
+    template<lazy::traits::isTag tag, typename L, typename R>
     inline static void evaluate(tag, T& out, const L& a, const R& b);
 
-    template<traits::isTag tag, traits::isExpr<T> L, traits::isExpr<T> R>
+    template<lazy::traits::isTag tag, lazy::traits::isExpr<T> L, lazy::traits::isExpr<T> R>
     LAZY_FORCE_INLINE static void eval_rule(tag, T& out, const L& a, const R& b){
         // IMPORTANT: out may be the same memory location as a and b
         
         // make sure L and R are NOT LazyType (RefType should be passed intead ALWAYS)
-        static_assert(!traits::isLazy<L, T> && !traits::isLazy<R, T>, "LazyType should not be passed to eval_rule, use RefType instead");
+        static_assert(!lazy::traits::isLazy<L, T> && !lazy::traits::isLazy<R, T>, "LazyType should not be passed to eval_rule, use RefType instead");
 
         // By default, eval_rule simply evaluates the sub-expressions and then calls evaluate with the raw values. Override this if you want to do something different, like short-circuiting for addition or multiplication.
         T* worker = RuleTree<T, L, R>::worker;
-        if constexpr (traits::isNode<L, T>) {
+        if constexpr (lazy::traits::isNode<L, T>) {
             // no matter what R is, since this operation has not been overriden,
             // we need to evaluate one of the branches (convention: the left one)
             Derived::eval_rule(tag{}, out, make_expr<T>(a.eval(worker[0])), b);
-        } else if constexpr (traits::isNode<R, T>) {
+        } else if constexpr (lazy::traits::isNode<R, T>) {
             Derived::evaluate(tag{}, out, a.value(), b.eval(worker[1]));
         } else {
             Derived::evaluate(tag{}, out, a.value(), b.value());
@@ -414,12 +414,12 @@ struct BinaryOpRules{
 template<typename Derived, typename T>
 struct UnaryOpRules{
 
-    template<traits::isTag tag, typename Arg>
+    template<lazy::traits::isTag tag, typename Arg>
     inline static void evaluate(tag, T& out, const Arg& a);
 
-    template<traits::isTag tag, traits::isExpr<T> Arg>
+    template<lazy::traits::isTag tag, lazy::traits::isExpr<T> Arg>
     inline static void eval_rule(tag, T& out, const Arg& a){
-        if constexpr (traits::isNode<Arg, T>) {
+        if constexpr (lazy::traits::isNode<Arg, T>) {
             T* worker = RuleTree<T, Arg>::worker;
             Derived::evaluate(tag{}, out, a.eval(worker[0]));
         } else {
@@ -594,11 +594,7 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
         detail::Rules<T>::for_each_aux(std::forward<F>(fn));
     }
 
-    LazyType(T value) : value_(std::move(value)) {}
-
     LazyType() = default;
-
-    ~LazyType() = default;
 
     template<typename U>
     requires (!traits::isExpr<U, T>)
@@ -613,6 +609,9 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     LazyType(U&& value) {
         value.eval(value_);
     }
+
+    template<typename... Args>
+    LazyType(Args&&... args) : value_(std::forward<Args>(args)...) {}
 
     LazyType(LazyType&& other) = default;
     LazyType& operator=(LazyType&& other) = default;
@@ -668,6 +667,8 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
         return *this;
     }
 
+    ~LazyType() = default;
+
     operator T() const { return value_; }
 
     LAZY_FORCE_INLINE const T& value() const {return value_;}
@@ -702,14 +703,14 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
 template<typename T, typename R>
 LAZY_FORCE_INLINE decltype(auto) make_expr(R&& value){
 
-    static_assert(traits::isValidType<R, T>, "Invalid type for make_expr");
+    static_assert(lazy::traits::isValidType<R, T>, "Invalid type for make_expr");
 
-    if constexpr (traits::isLazy<R, T> && std::is_lvalue_reference_v<R>) {
+    if constexpr (lazy::traits::isLazy<R, T> && std::is_lvalue_reference_v<R>) {
         // static_assert(std::is_lvalue_reference_v<R>, "LazyType rvalues are not allowed; bind to a variable first.");
         return RefType<T>(value.value());
-    } else if constexpr (traits::isLazy<R, T>) {
+    } else if constexpr (lazy::traits::isLazy<R, T>) {
         return LazyType<T>(std::move(value));
-    } else if constexpr (traits::isExpr<std::decay_t<R>, T>) {
+    } else if constexpr (lazy::traits::isExpr<std::decay_t<R>, T>) {
         return std::forward<R>(value);
     } else if constexpr (std::is_same_v<T, std::decay_t<R>> && std::is_lvalue_reference_v<R>) {
         return RefType<T>(value);
