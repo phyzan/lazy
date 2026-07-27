@@ -584,10 +584,12 @@ struct OtherType : public Atom<OtherType<T, Type>, T>{
  */
 template<typename T>
 struct LazyType : public detail::Atom<LazyType<T>, T>{
+    
     using Base = detail::Atom<LazyType<T>, T>;
+
+    using value_type = T;
     
     static constexpr bool isLazy = true;
-
 
     template<typename F>
     inline static void for_each_aux(F&& fn) {
