@@ -622,6 +622,13 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     LazyType& operator=(const LazyType& other) = default;
 
     template<typename U>
+    requires (traits::isNode<U, T>)
+    LazyType& operator=(U&& other){
+        other.eval(value_);
+        return *this;
+    }
+
+    template<typename U>
     LazyType& operator+=(U&& other){
         if constexpr (traits::isAtom<U, T>){
             detail::CustomBinaryRules<T>::evaluate(lazy::tags::PLUS{}, value_, value_, other.value());
