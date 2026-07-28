@@ -10,8 +10,8 @@ namespace lazy::detail{
 /**
  * @brief Expression node for addition: computes `lhs + rhs`.
  * @tparam T   The arithmetic value type.
- * @tparam L   The type of the left sub-expression (`isExpr<L,T>` required).
- * @tparam R   The type of the right sub-expression (`isExpr<R,T>` required).
+ * @tparam L   The type of the left sub-expression (`isLazyExpr<L,T>` required).
+ * @tparam R   The type of the right sub-expression (`isLazyExpr<R,T>` required).
  *
  * Uses `CustomBinaryRules<T>::evaluate(PLUS{}, out, a, b)` for the actual computation.
  * The default implementation calls the built-in `T::operator+`; specialise
@@ -225,42 +225,42 @@ LAZY_FORCE_INLINE auto make_neg(Arg&& arg){
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
 LAZY_FORCE_INLINE auto operator+(L&& lhs, R&& rhs){
-    return make_add<detail::MainTypeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
+    return make_add<detail::value_typeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
 }
 
 /// @brief Lazy multiplication: returns `Mul<T,L,R>` when at least one operand is an expression.
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
 LAZY_FORCE_INLINE auto operator*(L&& lhs, R&& rhs){
-    return make_mul<detail::MainTypeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
+    return make_mul<detail::value_typeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
 }
 
 /// @brief Lazy division: returns `Div<T,L,R>` when at least one operand is an expression.
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
 LAZY_FORCE_INLINE auto operator/(L&& lhs, R&& rhs){
-    return make_div<detail::MainTypeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
+    return make_div<detail::value_typeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
 }
 
 /// @brief Lazy subtraction: returns `Sub<T,L,R>` when at least one operand is an expression.
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
 LAZY_FORCE_INLINE auto operator-(L&& lhs, R&& rhs){
-    return make_sub<detail::MainTypeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
+    return make_sub<detail::value_typeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
 }
 
 /// @brief Lazy unary negation: returns `Neg<T,Arg>` for any expression argument.
 template<typename Arg>
-requires( requires {typename std::decay_t<Arg>::MainType;} && traits::isExpr<std::decay_t<Arg>, typename std::decay_t<Arg>::MainType> )
+requires( requires {typename std::decay_t<Arg>::value_type;} && traits::isLazyExpr<std::decay_t<Arg>, typename std::decay_t<Arg>::value_type> )
 LAZY_FORCE_INLINE auto operator-(Arg&& arg){
-    return make_neg<detail::MainTypeOf<Arg, void>>(std::forward<Arg>(arg));
+    return make_neg<detail::value_typeOf<Arg, void>>(std::forward<Arg>(arg));
 }
 
 /// @brief Lazy exponentiation: returns `Pow<T,Base,Exp>` when at least one operand is an expression.
 template<typename Base, typename Exp>
 requires LAZY_REQUIREMENT(Base, Exp)
 LAZY_FORCE_INLINE auto pow(Base&& base, Exp&& exp){
-    return make_pow<detail::MainTypeOf<Base, Exp>>(std::forward<Base>(base), std::forward<Exp>(exp));
+    return make_pow<detail::value_typeOf<Base, Exp>>(std::forward<Base>(base), std::forward<Exp>(exp));
 }
 
 /**
@@ -273,9 +273,9 @@ LAZY_FORCE_INLINE auto pow(Base&& base, Exp&& exp){
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
 LAZY_FORCE_INLINE auto max(L&& lhs, R&& rhs){
-    auto lhs_expr = make_expr<detail::MainTypeOf<L, R>>(std::forward<L>(lhs));
-    auto rhs_expr = make_expr<detail::MainTypeOf<L, R>>(std::forward<R>(rhs));
-    return MaxLazy<detail::MainTypeOf<L, R>, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
+    auto lhs_expr = make_expr<detail::value_typeOf<L, R>>(std::forward<L>(lhs));
+    auto rhs_expr = make_expr<detail::value_typeOf<L, R>>(std::forward<R>(rhs));
+    return MaxLazy<detail::value_typeOf<L, R>, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
 }
 
 /**
@@ -286,9 +286,9 @@ LAZY_FORCE_INLINE auto max(L&& lhs, R&& rhs){
 template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
 LAZY_FORCE_INLINE auto min(L&& lhs, R&& rhs){
-    auto lhs_expr = make_expr<detail::MainTypeOf<L, R>>(std::forward<L>(lhs));
-    auto rhs_expr = make_expr<detail::MainTypeOf<L, R>>(std::forward<R>(rhs));
-    return MinLazy<detail::MainTypeOf<L, R>, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
+    auto lhs_expr = make_expr<detail::value_typeOf<L, R>>(std::forward<L>(lhs));
+    auto rhs_expr = make_expr<detail::value_typeOf<L, R>>(std::forward<R>(rhs));
+    return MinLazy<detail::value_typeOf<L, R>, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
 }
 
 

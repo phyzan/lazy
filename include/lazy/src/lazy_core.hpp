@@ -3,7 +3,7 @@
 
 #include <vector>
 #include "lazy_decls.hpp"
-
+#include <ostream>
 
 namespace lazy{
 
@@ -38,13 +38,13 @@ template<typename Class, typename T>
 concept isConvertibleTo = lazyConvertCondition<Class, T>;
 
 template<typename Derived, typename T>
-concept isExpr = std::is_base_of_v<lazy::detail::ExprBase<T>, std::decay_t<Derived>>;
+concept isLazyExpr = std::is_base_of_v<lazy::detail::ExprBase<T>, std::decay_t<Derived>>;
 
 template<typename F, typename T>
 concept isValidScalar = isConvertibleTo<F, T> || std::is_same_v<std::decay_t<F>, T>;
 
 template<typename F, typename T>
-concept isValidType = isExpr<F, T> || isValidScalar<F, T>;
+concept isValidType = isLazyExpr<F, T> || isValidScalar<F, T>;
 
 template<typename Derived, typename T>
 concept isNode = requires { std::decay_t<Derived>::Nbranches; } && std::is_base_of_v< lazy::detail::Node<std::decay_t<Derived>, T, std::decay_t<Derived>::Nbranches>, std::decay_t<Derived>>;
@@ -84,6 +84,9 @@ concept isRef = std::is_base_of_v<lazy::detail::RefType<T>, std::decay_t<Derived
 template<typename Derived, typename T>
 concept isLazy = std::is_base_of_v<lazy::detail::LazyType<T>, std::decay_t<Derived>>;
 
+template<typename F>
+concept isAnyLazyExpr = requires { typename std::decay_t<F>::value_type; } && isLazyExpr<std::decay_t<F>, typename std::decay_t<F>::value_type>;
+
 } // namespace traits
 
 
@@ -98,10 +101,10 @@ namespace detail{
 /**
  * @brief Non-CRTP root base for all expression types parameterised on value type `T`.
  *
- * Deriving from `ExprBase<T>` opts a type into the `isExpr<D,T>` concept and provides
+ * Deriving from `ExprBase<T>` opts a type into the `isLazyExpr<D,T>` concept and provides
  * service types used throughout the library:
  *
- * - `MainType` — the underlying arithmetic type (carries `T` into derived classes via
+ * - `value_type` — the underlying arithmetic type (carries `T` into derived classes via
  *   the nested alias).
  * - `expr_storage_t<E>` — determines how sub-expressions are stored inside composite
  *   nodes: raw `T` values are stored as `const T&` (reference to an existing object),
@@ -114,7 +117,7 @@ namespace detail{
 template<typename T>
 struct ExprBase{
 
-    using MainType = T;
+    using value_type = T;
 
     template<typename E>
     struct expr_storage {
@@ -122,7 +125,7 @@ struct ExprBase{
         using type = const T&;
     };
 
-    template<traits::isExpr<T> E>
+    template<traits::isLazyExpr<T> E>
     struct expr_storage<E> {
         // For sub-expressions: store by value
         using type = std::decay_t<E>;
@@ -154,7 +157,7 @@ template<typename Derived, typename T>
 struct Expr : public ExprBase<T> {
 
     using Base = ExprBase<T>;
-    using MainType = T;
+    using value_type = T;
 
     static constexpr bool isAtom  = false;
     static constexpr bool isNode = false;
@@ -195,7 +198,7 @@ template<typename Derived, typename T>
 struct Atom : public Expr<Derived, T>{
 
     using Base = Expr<Derived, T>;
-    using MainType = T;
+    using value_type = T;
     static constexpr bool isAtom = true;
 
     LAZY_FORCE_INLINE const auto& value() const{
@@ -324,9 +327,9 @@ struct Rules{
  *
  * @tparam T        The arithmetic value type.
  * @tparam Branch   The expression types of the sub-expressions for which scratch is
- *                  needed.  Must satisfy `isExpr<Branch, T>` for each element.
+ *                  needed.  Must satisfy `isLazyExpr<Branch, T>` for each element.
  */
-template<typename T, traits::isExpr<T>... Branch>
+template<typename T, traits::isLazyExpr<T>... Branch>
 struct RuleTree : public Rules<T>{
 
     static constexpr size_t Nb = sizeof...(Branch);
@@ -349,7 +352,7 @@ struct RuleTree : public Rules<T>{
  * `BinaryOpRules<Derived, T>` is CRTP-mixed into each concrete binary-operation node
  * (via `CustomBinaryRules<T>`) and provides a two-step evaluation strategy:
  *
- * 1. **`eval_rule(tag, out, a, b)`** — accepts two `isExpr<T>` operands.  Recursively
+ * 1. **`eval_rule(tag, out, a, b)`** — accepts two `isLazyExpr<T>` operands.  Recursively
  *    evaluates any `Node` sub-expression (using thread-local scratch from `RuleTree`)
  *    until both operands are atoms, then calls `evaluate`.
  * 2. **`evaluate(tag, out, a, b)`** — accepts raw values `a`, `b` of any type and
@@ -377,7 +380,7 @@ struct BinaryOpRules{
     template<lazy::traits::isTag tag, typename L, typename R>
     inline static void evaluate(tag, T& out, const L& a, const R& b);
 
-    template<lazy::traits::isTag tag, lazy::traits::isExpr<T> L, lazy::traits::isExpr<T> R>
+    template<lazy::traits::isTag tag, lazy::traits::isLazyExpr<T> L, lazy::traits::isLazyExpr<T> R>
     LAZY_FORCE_INLINE static void eval_rule(tag, T& out, const L& a, const R& b){
         // IMPORTANT: out may be the same memory location as a and b
         
@@ -417,7 +420,7 @@ struct UnaryOpRules{
     template<lazy::traits::isTag tag, typename Arg>
     inline static void evaluate(tag, T& out, const Arg& a);
 
-    template<lazy::traits::isTag tag, lazy::traits::isExpr<T> Arg>
+    template<lazy::traits::isTag tag, lazy::traits::isLazyExpr<T> Arg>
     inline static void eval_rule(tag, T& out, const Arg& a){
         if constexpr (lazy::traits::isNode<Arg, T>) {
             T* worker = RuleTree<T, Arg>::worker;
@@ -470,18 +473,18 @@ struct CustomUnaryRules : public UnaryOpRules<CustomUnaryRules<T>, T>{};
  *
  * @tparam Derived The concrete unary node type (e.g. `Neg<T,Arg>`).
  * @tparam T       The arithmetic value type.
- * @tparam Arg     The type of the single child sub-expression (`isExpr<Arg,T>`).
+ * @tparam Arg     The type of the single child sub-expression (`isLazyExpr<Arg,T>`).
  */
 template<typename Derived, typename T, typename Arg>
 struct Unary : public Node<Derived, T, 1>{
 
-    static_assert(traits::isExpr<Arg, T>, "Unary node argument must be an expression");
+    static_assert(traits::isLazyExpr<Arg, T>, "Unary node argument must be an expression");
 
     using Base = Node<Derived, T, 1>;
     static constexpr bool isUnary = true;
 
     template<typename Arg2>
-    requires( requires {typename std::decay_t<Arg>::MainType;} && traits::isExpr<std::decay_t<Arg>, typename std::decay_t<Arg>::MainType> )
+    requires( requires {typename std::decay_t<Arg>::value_type;} && traits::isLazyExpr<std::decay_t<Arg>, typename std::decay_t<Arg>::value_type> )
     LAZY_FORCE_INLINE Unary(Arg2&& arg) : arg(std::forward<Arg2>(arg)) {}
 
     LAZY_FORCE_INLINE T& eval(T& out) const{
@@ -536,7 +539,7 @@ struct RefType : public Atom<RefType<T>, T>{
  *        `T`-typed expression tree.
  *
  * Used when a raw scalar (e.g. `int` or `double`) is mixed into an expression whose
- * `MainType` is a different type (e.g. `mpfr::mpreal`).  `make_expr<T>()` produces
+ * `value_type` is a different type (e.g. `mpfr::mpreal`).  `make_expr<T>()` produces
  * an `OtherType<T, S>` when `S != T` and `S` is not already an expression.  The
  * `value()` accessor returns the stored `Type` value which is then passed to
  * the `evaluate(tag, out, ..., scalar)` overloads in `CustomBinaryRules<T>`.
@@ -586,8 +589,6 @@ template<typename T>
 struct LazyType : public detail::Atom<LazyType<T>, T>{
     
     using Base = detail::Atom<LazyType<T>, T>;
-
-    using value_type = T;
     
     static constexpr bool isLazy = true;
 
@@ -599,7 +600,7 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     LazyType() = default;
 
     template<typename U>
-    requires (!traits::isExpr<U, T>)
+    requires (!traits::isLazyExpr<U, T>)
     LazyType(U&& value) : value_(std::forward<U>(value)) {}
 
     template<typename U>
@@ -615,11 +616,11 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     template<typename... Args>
     LazyType(Args&&... args) : value_(std::forward<Args>(args)...) {}
 
-    LazyType(LazyType&& other) = default;
-    LazyType& operator=(LazyType&& other) = default;
+    LazyType(LazyType&&) = default;
+    LazyType& operator=(LazyType&&) = default;
 
-    LazyType(const LazyType& other) = default;
-    LazyType& operator=(const LazyType& other) = default;
+    LazyType(const LazyType&) = default;
+    LazyType& operator=(const LazyType&) = default;
 
     template<typename U>
     requires (traits::isNode<U, T>)
@@ -682,6 +683,8 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
 
     LAZY_FORCE_INLINE const T& value() const {return value_;}
 
+    LAZY_FORCE_INLINE T& mut_value() {return value_;}
+
     T value_;
 
 };
@@ -698,7 +701,7 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
  * |-----------------------------|------------------------------------------|
  * | `LazyType<T>` lvalue        | `RefType<T>(value.value())`              |
  * | `LazyType<T>` rvalue        | `LazyType<T>(std::move(value))`          |
- * | Any other `isExpr<T>` type  | Forwarded as-is (no copy)                |
+ * | Any other `isLazyExpr<T>` type  | Forwarded as-is (no copy)                |
  * | Exactly `T` lvalue          | `RefType<T>(value)` (reference to `T`)   |
  * | Exactly `T` rvalue          | `LazyType<T>(value)` (takes ownership)   |
  * | Any other scalar `S`        | `OtherType<T, S>(value)`                 |
@@ -719,7 +722,7 @@ LAZY_FORCE_INLINE decltype(auto) make_expr(R&& value){
         return RefType<T>(value.value());
     } else if constexpr (lazy::traits::isLazy<R, T>) {
         return LazyType<T>(std::move(value));
-    } else if constexpr (lazy::traits::isExpr<std::decay_t<R>, T>) {
+    } else if constexpr (lazy::traits::isLazyExpr<std::decay_t<R>, T>) {
         return std::forward<R>(value);
     } else if constexpr (std::is_same_v<T, std::decay_t<R>> && std::is_lvalue_reference_v<R>) {
         return RefType<T>(value);

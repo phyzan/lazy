@@ -7,9 +7,9 @@
 
 namespace lazy::detail{
 
-/// @brief `Abs<T, Arg>` node and lazy `abs(U&&)` overload
-LAZY_DEFINE_UNARY_OP(abs, Abs, lazy::tags::ABS)
+/// @brief `e.g. Abs<T, Arg>` node and lazy `abs(U&&)` overload
 
+LAZY_DEFINE_UNARY_OP(abs, Abs, lazy::tags::ABS)
 LAZY_DEFINE_UNARY_OP(sqrt, Sqrt, lazy::tags::SQRT)
 LAZY_DEFINE_UNARY_OP(exp, Exp, lazy::tags::EXP)
 LAZY_DEFINE_UNARY_OP(log, Log, lazy::tags::LOG)
@@ -30,11 +30,17 @@ LAZY_DEFINE_UNARY_OP(cosh, Cosh, lazy::tags::COSH)
 LAZY_DEFINE_UNARY_OP(tanh, Tanh, lazy::tags::TANH)
 LAZY_DEFINE_UNARY_OP(erf, Erf, lazy::tags::ERF)
 
+template<lazy::traits::isAnyLazyExpr F>
+std::ostream& operator<<(std::ostream& os, const F& expr){
+    return os << expr.value();
+}
 
 } // namespace lazy::detail
 
 
 namespace lazy{
+
+using lazy::detail::operator<<;
 
 using lazy::detail::abs, 
       lazy::detail::sqrt,

@@ -26,14 +26,14 @@
  * @brief Constraint: at least one of `L`, `R` is a lazy expression type. The other type may be a lazy expression or a raw value convertible to `T`.
  *
  * Expands to an `&&`-expression that is `true` when `std::decay_t<L>` or
- * `std::decay_t<R>` (or both) expose a `MainType` alias and derive from
- * `ExprBase<MainType>`.  Used as a `requires` clause on all arithmetic and
+ * `std::decay_t<R>` (or both) expose a `value_type` alias and derive from
+ * `ExprBase<value_type>`.  Used as a `requires` clause on all arithmetic and
  * relational operator overloads to ensure they only activate for expression
  * operands and do not shadow built-in arithmetic.
  */
 #define LAZY_REQUIREMENT(L, R)\
-    ( (requires {typename std::decay_t<L>::MainType;} && lazy::traits::isExpr<std::decay_t<L>, typename std::decay_t<L>::MainType> && lazy::traits::isValidType<std::decay_t<R>, typename std::decay_t<L>::MainType>) || \
-      (requires {typename std::decay_t<R>::MainType;} && lazy::traits::isExpr<std::decay_t<R>, typename std::decay_t<R>::MainType> && lazy::traits::isValidType<std::decay_t<L>, typename std::decay_t<R>::MainType>) )
+    ( (requires {typename std::decay_t<L>::value_type;} && lazy::traits::isLazyExpr<std::decay_t<L>, typename std::decay_t<L>::value_type> && lazy::traits::isValidType<std::decay_t<R>, typename std::decay_t<L>::value_type>) || \
+      (requires {typename std::decay_t<R>::value_type;} && lazy::traits::isLazyExpr<std::decay_t<R>, typename std::decay_t<R>::value_type> && lazy::traits::isValidType<std::decay_t<L>, typename std::decay_t<R>::value_type>) )
 
 
 /**
@@ -51,7 +51,7 @@
 template<typename L, typename R>\
 requires LAZY_REQUIREMENT(L, R)\
 LAZY_FORCE_INLINE auto operator OP(L&& lhs, R&& rhs){\
-    using T = lazy::detail::MainTypeOf<L, R>;\
+    using T = lazy::detail::value_typeOf<L, R>;\
     auto lhs_expr = make_expr<T>(std::forward<L>(lhs));\
     auto rhs_expr = make_expr<T>(std::forward<R>(rhs));\
     return ClassName<T, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));\
@@ -92,7 +92,7 @@ constexpr bool lazy::traits::lazyConvertCondition<F, TYPE> = std::is_arithmetic_
  * 1. A struct `OP<T, Arg>` inheriting `Unary<OP<T,Arg>, T, Arg>` and
  *    `CustomUnaryRules<T>`, with `tag = TAG`
  * 2. A free function `FUNC(U&&)` constrained to any expression type, returning
- *    OP<detail::MainType<U>, std::decay_t<U>>(std::forward<U>(arg))`.
+ *    OP<detail::value_type<U>, std::decay_t<U>>(std::forward<U>(arg))`.
  *
  * @param FUNC     The function name (e.g. `abs`, `sqrt`).
  * @param OP       The node struct name (e.g. `Abs`, `Sqrt`).
@@ -109,12 +109,13 @@ struct OP : public Unary<OP<T, Arg>, T, Arg>, public CustomUnaryRules<T> {      
 \
 template<typename U>                                                            \
 requires (                                                                      \
-    requires { typename std::decay_t<U>::MainType; } &&                         \
-    traits::isExpr<std::decay_t<U>, typename std::decay_t<U>::MainType>                 \
+    requires { typename std::decay_t<U>::value_type; } &&                         \
+    traits::isLazyExpr<std::decay_t<U>, typename std::decay_t<U>::value_type>                 \
 )                                                                               \
 LAZY_FORCE_INLINE auto FUNC(U&& arg) {                                               \
-    using T = detail::MainType<U>;                                              \
-    return OP<T, std::decay_t<U>>(std::forward<U>(arg));                        \
+    using T = detail::value_type<U>;                                              \
+    auto arg_expr = make_expr<T>(std::forward<U>(arg));                         \
+    return OP<T, std::decay_t<decltype(arg_expr)>>(std::move(arg_expr));        \
 }
 
 
@@ -218,7 +219,7 @@ namespace lazy::detail {
  *
  * This is the root concept for the entire expression-template hierarchy.  Any type
  * that participates in lazy arithmetic must satisfy this concept for the same `T`
- * that its `MainType` alias names.
+ * that its `value_type` alias names.
  *
  * @tparam Derived The candidate expression type (references and cv-qualifiers are stripped).
  * @tparam T       The underlying arithmetic value type (e.g. `double`, `mpfr::mpreal`).
@@ -227,49 +228,49 @@ namespace lazy::detail {
 
 
 // ============================================================================
-// MainType trait  —  extracts the value type from an expression
+// value_type trait  —  extracts the value type from an expression
 // ============================================================================
 
 /**
- * @brief Primary trait: extract the `MainType` alias from an expression type `T`.
+ * @brief Primary trait: extract the `value_type` alias from an expression type `T`.
  *
- * Defaults to `void` when `T` does not have a nested `::MainType` alias.  The
+ * Defaults to `void` when `T` does not have a nested `::value_type` alias.  The
  * partial specialisation below overrides this for all expression types.
  *
  * @tparam T Candidate type (may or may not be an expression).
  */
 template<typename T>
-struct MainTypeTrait {
+struct value_typeTrait {
     using Type = void;
 };
 
-/// @brief Specialisation for types that do expose `::MainType`.
+/// @brief Specialisation for types that do expose `::value_type`.
 template<typename T>
-requires (requires {typename std::decay_t<T>::MainType;})
-struct MainTypeTrait<T> {
-    using Type = typename std::decay_t<T>::MainType;
+requires (requires {typename std::decay_t<T>::value_type;})
+struct value_typeTrait<T> {
+    using Type = typename std::decay_t<T>::value_type;
 };
 
-/// @brief Convenience alias: `MainType<E>` == `MainTypeTrait<E>::Type`.
+/// @brief Convenience alias: `value_type<E>` == `value_typeTrait<E>::Type`.
 template<typename E>
-using MainType = typename MainTypeTrait<E>::Type;
+using value_type = typename value_typeTrait<E>::Type;
 
 
 /**
- * @brief Derives the common `MainType` from a pair of operand types.
+ * @brief Derives the common `value_type` from a pair of operand types.
  *
  * Rules:
- * - If both `A` and `B` expose a `MainType` and they are the same, the result is that type.
- * - If only one side has a `MainType` (the other is `void`, e.g. a raw scalar), that
- *   side's `MainType` is used.
- * - It is ill-formed for **both** to have `void` `MainType` (neither would be an expression).
+ * - If both `A` and `B` expose a `value_type` and they are the same, the result is that type.
+ * - If only one side has a `value_type` (the other is `void`, e.g. a raw scalar), that
+ *   side's `value_type` is used.
+ * - It is ill-formed for **both** to have `void` `value_type` (neither would be an expression).
  *
  * @tparam A Left operand type.
  * @tparam B Right operand type.
  */
 template<typename A, typename B>
-requires ((std::is_same_v<MainType<A>, MainType<B>> || std::is_same_v<MainType<A>, void> || std::is_same_v<MainType<B>, void>) && !(std::is_same_v<MainType<A>, void> && std::is_same_v<MainType<B>, void>))
-using MainTypeOf = std::conditional_t<std::is_same_v<MainType<A>, void>, MainType<B>, MainType<A>>;
+requires ((std::is_same_v<value_type<A>, value_type<B>> || std::is_same_v<value_type<A>, void> || std::is_same_v<value_type<B>, void>) && !(std::is_same_v<value_type<A>, void> && std::is_same_v<value_type<B>, void>))
+using value_typeOf = std::conditional_t<std::is_same_v<value_type<A>, void>, value_type<B>, value_type<A>>;
 
 
 
