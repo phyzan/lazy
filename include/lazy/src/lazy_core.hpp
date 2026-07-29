@@ -736,16 +736,13 @@ LAZY_FORCE_INLINE decltype(auto) make_expr(R&& value){
     static_assert(lazy::traits::isValidType<R, T>, "Invalid type for make_expr");
 
     if constexpr (lazy::traits::isLazy<R, T> && std::is_lvalue_reference_v<R>) {
-        // static_assert(std::is_lvalue_reference_v<R>, "LazyType rvalues are not allowed; bind to a variable first.");
         return RefType<T>(value.value());
-    } else if constexpr (lazy::traits::isLazy<R, T>) {
-        return LazyType<T>(std::move(value));
-    } else if constexpr (lazy::traits::isLazyExpr<std::decay_t<R>, T>) {
-        return std::forward<R>(value);
     } else if constexpr (std::is_same_v<T, std::decay_t<R>> && std::is_lvalue_reference_v<R>) {
         return RefType<T>(value);
-    } else if constexpr (std::is_same_v<T, std::decay_t<R>>) {
+    } else if constexpr (lazy::traits::isLazy<R, T> || std::is_same_v<T, std::decay_t<R>>) {
         return LazyType<T>(std::forward<R>(value));
+    } else if constexpr (lazy::traits::isLazyExpr<std::decay_t<R>, T>) {
+        return std::forward<R>(value);
     } else {
         return OtherType<T, std::decay_t<R>>(std::forward<R>(value));
     }
