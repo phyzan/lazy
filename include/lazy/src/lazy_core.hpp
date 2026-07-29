@@ -598,9 +598,6 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     LazyType(LazyType&&) = default;
     LazyType& operator=(const LazyType&) = default;
     LazyType& operator=(LazyType&&) = default;
-    LazyType& operator=(LazyType& other) {
-        return this->operator=(static_cast<const LazyType&>(other));
-    }
     LazyType(LazyType& other) : LazyType(static_cast<const LazyType&>(other)) {}  // Prevent variadic from matching lvalue ref
     ~LazyType() = default;
 
@@ -632,7 +629,7 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     }
 
     template<traits::isAtom<T> U>
-    LazyType& operator=(U&& other){
+    LazyType& operator=(U&& other) requires (!lazy::traits::isLazy<U, T>){
         value_ = other.value();
         return *this;
     }
