@@ -622,10 +622,21 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     LazyType(const LazyType&) = default;
     LazyType& operator=(const LazyType&) = default;
 
-    template<typename U>
-    requires (traits::isNode<U, T>)
+    template<traits::isNode<T> U>
     LazyType& operator=(U&& other){
         other.eval(value_);
+        return *this;
+    }
+
+    template<traits::isAtom<T> U>
+    LazyType& operator=(U&& other){
+        value_ = other.value();
+        return *this;
+    }
+
+    template<typename U>
+    LazyType& operator=(U&& other){
+        value_ = std::forward<U>(other);
         return *this;
     }
 
