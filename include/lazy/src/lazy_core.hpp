@@ -592,13 +592,19 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     
     static constexpr bool isLazy = true;
 
-    template<typename F>
-    inline static void for_each_aux(F&& fn) {
-        detail::Rules<T>::for_each_aux(std::forward<F>(fn));
-    }
-
+    // Main constructors and assignment operators
     LazyType() = default;
+    LazyType(const LazyType&) = default;
+    LazyType(LazyType&&) = default;
+    LazyType& operator=(const LazyType&) = default;
+    LazyType& operator=(LazyType&&) = default;
+    LazyType& operator=(LazyType& other) {
+        return this->operator=(static_cast<const LazyType&>(other));
+    }
+    LazyType(LazyType& other) : LazyType(static_cast<const LazyType&>(other)) {}  // Prevent variadic from matching lvalue ref
+    ~LazyType() = default;
 
+    // Construct from lazy expressions
     template<typename U>
     requires (!traits::isLazyExpr<U, T>)
     LazyType(U&& value) : value_(std::forward<U>(value)) {}
@@ -613,16 +619,12 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
         value.eval(value_);
     }
 
-    template<typename... Args>
-    LazyType(Args&&... args) : value_(std::forward<Args>(args)...) {}
+    // Construct by forwarding values
+    template<typename... U>
+    requires (!traits::isLazyExpr<U, T> && ...)
+    LazyType(U&&... value) : value_(std::forward<U>(value)...) {}
 
-    LazyType(LazyType&&) = default;
-    LazyType& operator=(LazyType&&) = default;
-
-    LazyType(const LazyType&) = default;
-    LazyType(LazyType& other) : value_(other.value_) {}  // Prevent variadic from matching lvalue ref
-    LazyType& operator=(const LazyType&) = default;
-
+    // Assignment operators
     template<traits::isNode<T> U>
     LazyType& operator=(U&& other){
         other.eval(value_);
@@ -636,11 +638,12 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     }
 
     template<typename U>
-    LazyType& operator=(U&& other){
+    LazyType& operator=(U&& other) requires (!traits::isLazyExpr<U, T>){
         value_ = std::forward<U>(other);
         return *this;
     }
 
+    // Compound assignment operators
     template<typename U>
     LazyType& operator+=(U&& other){
         if constexpr (traits::isAtom<U, T>){
@@ -689,9 +692,12 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
         return *this;
     }
 
-    ~LazyType() = default;
-
     operator T() const { return value_; }
+
+    template<typename F>
+    inline static void for_each_aux(F&& fn) {
+        detail::Rules<T>::for_each_aux(std::forward<F>(fn));
+    }
 
     LAZY_FORCE_INLINE const T& value() const {return value_;}
 
