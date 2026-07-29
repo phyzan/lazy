@@ -620,6 +620,7 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     LazyType& operator=(LazyType&&) = default;
 
     LazyType(const LazyType&) = default;
+    LazyType(LazyType& other) : value_(other.value_) {}  // Prevent variadic from matching lvalue ref
     LazyType& operator=(const LazyType&) = default;
 
     template<traits::isNode<T> U>

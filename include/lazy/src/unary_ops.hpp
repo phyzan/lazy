@@ -33,7 +33,9 @@ LAZY_DEFINE_UNARY_OP(erf, Erf, lazy::tags::ERF)
 template<lazy::traits::isAnyLazyExpr F>
 std::ostream& operator<<(std::ostream& os, const F& expr){
     using T = typename F::value_type;
-    return os << T(expr);
+    T value;
+    expr.eval(value);
+    return os << value;
 }
 
 } // namespace lazy::detail
