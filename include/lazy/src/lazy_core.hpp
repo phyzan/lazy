@@ -695,8 +695,8 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
 
     LAZY_FORCE_INLINE const T& value() const {return value_;}
 
-    LAZY_FORCE_INLINE T& mut_value() {return value_;}
-
+    LAZY_FORCE_INLINE T& value() {return value_;}
+private:
     T value_;
 
 };
