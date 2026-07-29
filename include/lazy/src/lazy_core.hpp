@@ -595,9 +595,9 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     // Main constructors and assignment operators
     LazyType() = default;
     LazyType(const LazyType&) = default;
-    LazyType(LazyType&&) = default;
+    LazyType(LazyType&&) noexcept = default;
     LazyType& operator=(const LazyType&) = default;
-    LazyType& operator=(LazyType&&) = default;
+    LazyType& operator=(LazyType&&) noexcept = default;
     LazyType(LazyType& other) : LazyType(static_cast<const LazyType&>(other)) {}  // Prevent variadic from matching lvalue ref
     ~LazyType() = default;
 
