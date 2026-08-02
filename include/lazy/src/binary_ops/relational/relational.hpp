@@ -2,7 +2,8 @@
 #define LAZY_RELATIONAL_HPP
 
 
-#include "lazy_core.hpp"
+#include "../../core.hpp"
+#include "relational_decls.hpp"
 
 
 namespace lazy::detail{
@@ -52,10 +53,11 @@ struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
         }
     }
 
-
     template<traits::isBoolTag tag, typename L, typename R>
     LAZY_FORCE_INLINE static bool eval_bool(tag, const L& a, const R& b){
-        T* worker = RuleTree<T, L, R>::worker;
+        using comp_t = typename lazy::detail::TypeGetter<T, tag, L, R>::type;
+        static_assert(!std::is_void_v<comp_t>, "Invalid comparison type");
+        T* worker = RuleTree<T, comp_t, L, R>::worker;
          if constexpr (traits::isNode<L, T> && traits::isNode<R, T>) {
             // no matter what R is, since this operation has not been overriden,
             // we need to evaluate one of the branches (convention: the left one)
@@ -67,13 +69,10 @@ struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
         } else {
             return get_bool(tag{}, a.value(), b.value());
         }
+        return true;
     }
 
 };
-
-
-
-
 
 
 /**
@@ -111,6 +110,14 @@ struct Eq : public Comparison<Eq<T, L, R>, T, L, R>{
     using tag = lazy::tags::EQ;
 };
 
+/// @brief Lazy not-equal comparison node (`lhs != rhs`).  `operator bool()` returns the result.
+template<typename T, typename L, typename R>
+struct Neq : public Comparison<Neq<T, L, R>, T, L, R>{
+    using Base = Comparison<Neq<T, L, R>, T, L, R>;
+    using Base::Base;
+    using tag = lazy::tags::NEQ;
+};
+
 
 /// @brief Lazy greater-than comparison node (`lhs > rhs`).  `operator bool()` returns the result.
 template<typename T, typename L, typename R>
@@ -126,14 +133,6 @@ struct Lt : public Comparison<Lt<T, L, R>, T, L, R>{
     using Base = Comparison<Lt<T, L, R>, T, L, R>;
     using Base::Base;
     using tag = lazy::tags::LT;
-};
-
-/// @brief Lazy not-equal comparison node (`lhs != rhs`).  `operator bool()` returns the result.
-template<typename T, typename L, typename R>
-struct Neq : public Comparison<Neq<T, L, R>, T, L, R>{
-    using Base = Comparison<Neq<T, L, R>, T, L, R>;
-    using Base::Base;
-    using tag = lazy::tags::NEQ;
 };
 
 /// @brief Lazy greater-or-equal comparison node (`lhs >= rhs`).  `operator bool()` returns the result.
@@ -155,15 +154,10 @@ struct Le : public Comparison<Le<T, L, R>, T, L, R>{
 
 
 LAZY_DEFINE_RELATIONAL_OP(==, Eq)
-
 LAZY_DEFINE_RELATIONAL_OP(!=, Neq)
-
 LAZY_DEFINE_RELATIONAL_OP(>, Gt)
-
 LAZY_DEFINE_RELATIONAL_OP(<, Lt)
-
 LAZY_DEFINE_RELATIONAL_OP(>=, Ge)
-
 LAZY_DEFINE_RELATIONAL_OP(<=, Le)
 
 } // namespace lazy::detail

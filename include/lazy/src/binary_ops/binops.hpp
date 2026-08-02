@@ -1,11 +1,110 @@
-#ifndef LAZY_BINARY_OPS_HPP
-#define LAZY_BINARY_OPS_HPP
+#ifndef LAZY_BINOPS_HPP
+#define LAZY_BINOPS_HPP
 
-#include "lazy_core.hpp"
+#include "binop_decls.hpp"
+#include <utility>
+
 
 namespace lazy::detail{
 
 // ============================== Binary Operation nodes ==============================
+
+
+// ============================================================================
+// BinaryOperator — stores lhs/rhs and dispatches to eval_rule
+// ============================================================================
+
+/**
+ * @brief CRTP base for all two-operand expression nodes.
+ *
+ * Holds the left- and right-hand sub-expressions (by value, embedded inline) and
+ * provides a concrete `eval(T& out)` that delegates to
+ * `Derived::eval_rule(tag{}, out, make_expr<T>(lhs), make_expr<T>(rhs))`.
+ *
+ * Constructing a `BinaryOperator<Derived,T,L,R>` requires that both `L` and `R` are
+ * constructible from the supplied arguments.  See `make_add`, `make_mul`, etc. for
+ * the canonical factory functions that build these nodes.
+ *
+ * @tparam Derived The most-derived type (e.g. `Add<T,L,R>`).
+ * @tparam T       The underlying arithmetic value type.
+ * @tparam L       The type of the left-hand sub-expression (stored by value).
+ * @tparam R       The type of the right-hand sub-expression (stored by value).
+ */
+template<typename Derived, typename T, typename L, typename R>
+struct BinaryOperator : public Node<Derived, T, 2>{
+
+    using Base = Node<Derived, T, 2>;
+    using LhsType = L;
+    using RhsType = R;
+    using branch_t = std::tuple<L, R>;
+    static constexpr bool isBinaryOperator = true;
+    
+    template<typename L2, typename R2>
+    requires (std::is_constructible_v<L, L2&&> && std::is_constructible_v<R, R2&&>)
+    LAZY_FORCE_INLINE BinaryOperator(L2&& lhs, R2&& rhs) : lhs(std::forward<L2>(lhs)), rhs(std::forward<R2>(rhs)) {}
+
+    LAZY_FORCE_INLINE T& eval(T& out) const{
+        Derived::eval_rule(typename Derived::tag{}, out, make_expr<T>(lhs), make_expr<T>(rhs));
+        return out;
+    }
+
+    L lhs; R rhs;
+};
+
+
+//============================== Binary Operation rules ==============================
+
+/**
+ * @brief Default evaluation policy for binary operations.
+ *
+ * `BinaryOpRules<Derived, T>` is CRTP-mixed into each concrete binary-operation node
+ * (via `CustomBinaryRules<T>`) and provides a two-step evaluation strategy:
+ *
+ * 1. **`eval_rule(tag, out, a, b)`** — accepts two `isLazyExpr<T>` operands.  Recursively
+ *    evaluates any `Node` sub-expression (using thread-local scratch from `RuleTree`)
+ *    until both operands are atoms, then calls `evaluate`.
+ * 2. **`evaluate(tag, out, a, b)`** — accepts raw values `a`, `b` of any type and
+ *    writes the result to `out`.  This is the function to *specialise* when providing
+ *    type-specific implementations (e.g. MPFR intrinsics).
+ *
+ * **Important:** `out`, `a`, and `b` may alias the same memory (the library performs
+ * in-place updates of `LazyType<T>` variables).  Implementations of `evaluate` must
+ * be safe under aliasing.
+ *
+ * @tparam Derived The concrete rules class (CRTP, typically `CustomBinaryRules<T>`).
+ * @tparam T       The arithmetic value type.
+ */
+template<typename Derived, typename T>
+struct BinaryOpRules : NodalOperatorRules<Derived, T> {
+
+    /**
+    eval_rule takes as input T, while "a" and "b" are Expr types, not raw values like T or int, double etc.
+    Override this for more control.
+
+    On the other hand, evaluate takes as input raw values like T or int. These must be instanciated necessarily for core operations like addition, multiplication etc.
+    */
+
+    // IMPORTANT: a or b might be the same memory location as out.
+    template<lazy::traits::isTag tag, typename L, typename R>
+    inline static void evaluate(tag, T& out, const L& a, const R& b);
+};
+
+
+/**
+ * @brief Primary binary-operation rules for type `T`.
+ *
+ * A default-constructed `CustomBinaryRules<T>` provides no specialised `evaluate`
+ * overloads.  Users should provide a full specialisation (via `LAZY_SPECIALIZE_OPERATIONS`)
+ * for each numeric type `T` to define how `+`, `-`, `*`, `/`, `pow`, `max`, `min`
+ * are computed.
+ *
+ * When no specialisation exists, the library falls back to the default
+ * `BinaryOpRules` which uses the built-in operators on raw `T` values.
+ *
+ * @tparam T The arithmetic value type to specialise for.
+ */
+template<typename T>
+struct CustomBinaryRules : public BinaryOpRules<CustomBinaryRules<T>, T>{};
 
 /**
  * @brief Expression node for addition: computes `lhs + rhs`.
@@ -204,17 +303,6 @@ LAZY_FORCE_INLINE auto make_pow(L&& lhs, R&& rhs){
     return Pow<T, std::decay_t<decltype(lhs_expr)>, std::decay_t<decltype(rhs_expr)>>(std::move(lhs_expr), std::move(rhs_expr));
 }
 
-/**
- * @brief Build a `Neg<T,Arg>` node from a single argument.
- * @tparam T   The arithmetic value type.
- * @tparam Arg Operand type.
- */
-template<typename T, typename Arg>
-LAZY_FORCE_INLINE auto make_neg(Arg&& arg){
-    auto arg_expr = make_expr<T>(std::forward<Arg>(arg));
-    return Neg<T, std::decay_t<decltype(arg_expr)>>(std::move(arg_expr));
-}
-
 //===================================== operator overloads=========================
 //
 // All arithmetic and relational operators are constrained with LAZY_REQUIREMENT so
@@ -247,13 +335,6 @@ template<typename L, typename R>
 requires LAZY_REQUIREMENT(L, R)
 LAZY_FORCE_INLINE auto operator-(L&& lhs, R&& rhs){
     return make_sub<detail::value_typeOf<L, R>>(std::forward<L>(lhs), std::forward<R>(rhs));
-}
-
-/// @brief Lazy unary negation: returns `Neg<T,Arg>` for any expression argument.
-template<typename Arg>
-requires( requires {typename std::decay_t<Arg>::value_type;} && traits::isLazyExpr<std::decay_t<Arg>, typename std::decay_t<Arg>::value_type> )
-LAZY_FORCE_INLINE auto operator-(Arg&& arg){
-    return make_neg<detail::value_typeOf<Arg, void>>(std::forward<Arg>(arg));
 }
 
 /// @brief Lazy exponentiation: returns `Pow<T,Base,Exp>` when at least one operand is an expression.
@@ -305,7 +386,7 @@ using lazy::detail::operator+,
       lazy::detail::min, 
       lazy::detail::max;
 
-} // namespace lazy
+} // namespace lazy::detail
 
 
-#endif // LAZY_BINARY_OPS_HPP
+#endif // LAZY_BINOPS_HPP
