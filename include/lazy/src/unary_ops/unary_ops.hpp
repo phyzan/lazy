@@ -11,18 +11,9 @@ namespace lazy::detail{
 
 /**
  * @brief Default evaluation policy for unary operations.
- *
- * Mirrors `BinaryOpRules` for single-argument operations.  `eval_rule(tag, out, a)`
- * evaluates the argument if it is a `Node` (placing the result in the first slot of
- * `RuleTree<T, node_t, branch_t>::aux`), then calls `evaluate(tag, out, raw_a)`.
- *
- * Specialise `evaluate` to provide type-specific unary implementations.
- *
- * @tparam Derived The concrete rules class (CRTP, typically `CustomUnaryRules<T>`).
- * @tparam T       The arithmetic value type.
  */
 template<typename Derived, typename T>
-struct UnaryOpRules : NodalOperatorRules<Derived, T> {
+struct UnaryOpRules : NodalEvaluator<Derived, T> {
 
     template<lazy::traits::isTag tag, typename Arg>
     inline static void evaluate(tag, T& out, const Arg& a);

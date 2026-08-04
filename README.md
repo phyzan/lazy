@@ -91,7 +91,6 @@ int main(){
 |---|---|
 | 🌳 **Expression trees** | Arithmetic builds a statically-typed tree; computation is deferred |
 | 🔌 **Pluggable rules** | Specialise `CustomBinaryRules<T>` / `CustomUnaryRules<T>` for type-specific kernels |
-| 🧵 **Thread-safe temporaries** | Per-thread scratch allocation via `RuleTree`|
 | 🔢 **MPFR ready** | Include `<lazy/apps/mpfrLazy.hpp>` for full `mpfr::mpreal` support with fused operations |
 | 🏎️ **Zero overhead** | All paths are `LAZY_FORCE_INLINE`; the compiler sees flat arithmetic after optimisation |
 
@@ -230,7 +229,7 @@ struct CustomBinaryRules<MyType>
 
 ## 🧵 Thread Safety
 
-Each unique sub-expression branch of an algebraic tree gets its own **thread-local** scratch array via `RuleTree`. This means:
+Each unique sub-expression branch of an algebraic tree gets its own **thread-local** scratch array. This means:
 
 - ✅ Multiple threads can evaluate expressions of the **same type** concurrently
 - ⚠️ A single `LazyType<T>` variable must not be written from multiple threads

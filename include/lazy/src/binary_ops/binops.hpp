@@ -54,37 +54,9 @@ struct BinaryOperator : public Node<Derived, T, 2>{
 
 //============================== Binary Operation rules ==============================
 
-/**
- * @brief Default evaluation policy for binary operations.
- *
- * `BinaryOpRules<Derived, T>` is CRTP-mixed into each concrete binary-operation node
- * (via `CustomBinaryRules<T>`) and provides a two-step evaluation strategy:
- *
- * 1. **`eval_rule(tag, out, a, b)`** — accepts two `isLazyExpr<T>` operands.  Recursively
- *    evaluates any `Node` sub-expression (using thread-local scratch from `RuleTree`)
- *    until both operands are atoms, then calls `evaluate`.
- * 2. **`evaluate(tag, out, a, b)`** — accepts raw values `a`, `b` of any type and
- *    writes the result to `out`.  This is the function to *specialise* when providing
- *    type-specific implementations (e.g. MPFR intrinsics).
- *
- * **Important:** `out`, `a`, and `b` may alias the same memory (the library performs
- * in-place updates of `LazyType<T>` variables).  Implementations of `evaluate` must
- * be safe under aliasing.
- *
- * @tparam Derived The concrete rules class (CRTP, typically `CustomBinaryRules<T>`).
- * @tparam T       The arithmetic value type.
- */
 template<typename Derived, typename T>
-struct BinaryOpRules : NodalOperatorRules<Derived, T> {
+struct BinaryOpRules : NodalEvaluator<Derived, T> {
 
-    /**
-    eval_rule takes as input T, while "a" and "b" are Expr types, not raw values like T or int, double etc.
-    Override this for more control.
-
-    On the other hand, evaluate takes as input raw values like T or int. These must be instanciated necessarily for core operations like addition, multiplication etc.
-    */
-
-    // IMPORTANT: a or b might be the same memory location as out.
     template<lazy::traits::isTag tag, typename L, typename R>
     inline static void evaluate(tag, T& out, const L& a, const R& b);
 };
@@ -94,7 +66,7 @@ struct BinaryOpRules : NodalOperatorRules<Derived, T> {
  * @brief Primary binary-operation rules for type `T`.
  *
  * A default-constructed `CustomBinaryRules<T>` provides no specialised `evaluate`
- * overloads.  Users should provide a full specialisation (via `LAZY_SPECIALIZE_OPERATIONS`)
+ * overloads.  Users should provide a full specialisation
  * for each numeric type `T` to define how `+`, `-`, `*`, `/`, `pow`, `max`, `min`
  * are computed.
  *

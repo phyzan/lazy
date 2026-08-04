@@ -12,24 +12,12 @@ namespace lazy::detail{
 
 /**
  * @brief Evaluation rules for relational comparisons.
- *
- * Extends `BinaryOpRules` to support `isNode` operands in the boolean path.  The
- * key entry point is `eval_bool(tag, a, b)` which:
- * 1. Evaluates any `Node` operands into scratch storage.
- * 2. Calls `get_bool(tag, raw_a, raw_b)` to perform the actual comparison.
- *
- * `get_bool` dispatches on the tag type at compile time to one of `==`, `!=`, `>`,
- * `<`, `>=`, `<=`.
- *
- * The `evaluate(tag, out, a, b)` overload used by the standard `eval_rule` path writes
- * the `bool` result into `out` via `get_bool`.
- *
  */
 template<typename T>
 struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
 
     template<traits::isBoolTag tag, typename L, typename R>
-    LAZY_FORCE_INLINE static void evaluate(tag, T& out, const L& a, const R& b){
+    LAZY_FORCE_INLINE static void evaluate(tag, auto& out, const L& a, const R& b){
         out = get_bool(tag{}, a, b);
     }
 
@@ -53,25 +41,6 @@ struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
         }
     }
 
-    template<traits::isBoolTag tag, typename L, typename R>
-    LAZY_FORCE_INLINE static bool eval_bool(tag, const L& a, const R& b){
-        using comp_t = typename lazy::detail::TypeGetter<T, tag, L, R>::type;
-        static_assert(!std::is_void_v<comp_t>, "Invalid comparison type");
-        T* worker = RuleTree<T, comp_t, L, R>::worker;
-         if constexpr (traits::isNode<L, T> && traits::isNode<R, T>) {
-            // no matter what R is, since this operation has not been overriden,
-            // we need to evaluate one of the branches (convention: the left one)
-            return get_bool(tag{}, a.eval(worker[0]), b.eval(worker[1]));
-        } else if constexpr (traits::isNode<R, T>) {
-            return get_bool(tag{}, a.value(), b.eval(worker[1]));
-        } else if constexpr (traits::isNode<L, T>) {
-            return get_bool(tag{}, a.eval(worker[0]), b.value());
-        } else {
-            return get_bool(tag{}, a.value(), b.value());
-        }
-        return true;
-    }
-
 };
 
 
@@ -83,7 +52,7 @@ struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
  * `get_bool`).
  *
  * The `operator bool()` implicit conversion evaluates the comparison lazily:
- * it calls `Derived::eval_bool(tag{}, this->lhs, this->rhs)`, which internally
+ * it calls `Derived::eval_rule(tag{}, out, this->lhs, this->rhs)`, which internally
  * evaluates any `Node` sub-expressions via thread-local scratch before comparing.
  *
  * @tparam Derived The concrete comparison type (e.g. `Gt<T,L,R>`).
@@ -97,7 +66,9 @@ struct Comparison : public BinaryOperator<Derived, T, L, R>, public CompareRules
     using Base::Base;
 
     operator bool() const{
-        return Derived::eval_bool(typename Derived::tag{}, this->lhs, this->rhs);
+        bool out;
+        Derived::eval_rule(typename Derived::tag{}, out, this->lhs, this->rhs);
+        return out;
     }
 };
 

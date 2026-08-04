@@ -30,8 +30,8 @@
  * compiled in.
  *
  * ### Precision management
- * All thread-local scratch `mpfr::mpreal` objects allocated by `RuleTree` are
- * registered in `Rules<mpfr::mpreal>::aux_ptrs`.  `set_default_mpreal_prec` iterates
+ * All thread-local scratch `mpfr::mpreal` objects allocated automatically are
+ * registered in `LazyType<mpfr::mpreal>::workers`.  `set_default_mpreal_prec` iterates
  * over that registry and calls `set_prec` on every scratch variable so that precision
  * changes are reflected throughout the evaluation pipeline.
  *
@@ -558,14 +558,8 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
     }
 #endif // MPFR_VERSION >= 4.0
 
-
 };
 
-
-}; // namespace lazy::detail
-
-
-namespace lazy {
 
 /**
  * @brief Check whether a `LazyType<mpfr::mpreal>` holds a finite value.
@@ -581,12 +575,21 @@ inline bool isfinite(const LazyType<mpfr::mpreal>& x){
     return mpfr::isfinite(x.value());
 }
 
+
+}; // namespace lazy::detail
+
+
+namespace lazy {
+
+
+using lazy::detail::isfinite;
+
 /**
  * @brief Set the global default MPFR precision and resize all scratch buffers.
  *
  * Changes the precision for newly created `mpfr::mpreal` objects **and** resizes
- * every `mpfr::mpreal` scratch buffer registered in `Rules<mpfr::mpreal>::aux_ptrs`
- * (i.e. all thread-local temporaries created by `RuleTree` for `mpfr::mpreal`
+ * every `mpfr::mpreal` scratch buffer registered in `LazyType<mpfr::mpreal>::workers`
+ * (i.e. all thread-local temporaries created automatically for `mpfr::mpreal`
  * expressions).  This ensures that subsequent lazy evaluations use the new precision
  * throughout.
  *
@@ -594,7 +597,7 @@ inline bool isfinite(const LazyType<mpfr::mpreal>& x){
  */
 inline void set_default_mpreal_prec(mpfr_prec_t prec){
     mpfr::mpreal::set_default_prec(prec);
-    lazy::LazyType<mpfr::mpreal>::for_each_aux([prec](mpfr::mpreal& key){
+    lazy::LazyType<mpfr::mpreal>::for_each_worker([prec](mpfr::mpreal& key){
         key.set_prec(prec);
     });
     mpfr::mpreal::set_default_prec(prec);
