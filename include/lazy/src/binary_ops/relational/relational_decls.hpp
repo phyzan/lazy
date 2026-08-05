@@ -58,7 +58,7 @@ concept isBoolTag = std::is_base_of_v<lazy::tags::BOOL_TAG, std::decay_t<Arg>>;
 namespace lazy::detail{
 
 template<typename T>
-struct CompareRules;
+struct BooleanEvaluator;
 
 template<typename Derived, typename T, typename L, typename R>
 struct Comparison;

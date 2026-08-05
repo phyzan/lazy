@@ -22,7 +22,7 @@
  * @param RIGHT The pattern type of the right sub-expression.
  */
 #define LAZY_OVERRIDE_OPER(T, a, b, LEFT, tag, RIGHT)\
-LAZY_FORCE_INLINE static void eval_rule(tag, T& out, const fromPattern<T, LEFT>& a, const fromPattern<T, RIGHT>& b)
+LAZY_FORCE_INLINE static void eval_rule(tag, T& out, T* /**/, const fromPattern<T, LEFT>& a, const fromPattern<T, RIGHT>& b)
 
 
 namespace lazy::detail{

@@ -41,7 +41,7 @@ LAZY_FORCE_INLINE static void evaluate(tag, T& out, const LEFT& a, const RIGHT& 
  * @code
  *   LAZY_SPECIALIZE_OPERATIONS(MyType) {
  *       using T = MyType;
- *       using Base = BinaryOpRules<CustomBinaryRules<T>, T>;
+ *       using Base = BinaryEvaluator<CustomBinaryEvaluator<T>, T>;
  *       using Base::evaluate; using Base::eval_rule;
  *       LAZY_EVALUATE_OPER(T, a, b, T, PLUS, T) { out = my_add(a, b); }
  *       // ...
@@ -52,7 +52,7 @@ LAZY_FORCE_INLINE static void evaluate(tag, T& out, const LEFT& a, const RIGHT& 
  */
 #define LAZY_SPECIALIZE_OPERATIONS(Type)\
 template<>\
-struct CustomBinaryRules<Type> : public BinaryOpRules<CustomBinaryRules<Type>, Type>
+struct CustomBinaryEvaluator<Type> : public BinaryEvaluator<CustomBinaryEvaluator<Type>, Type>
 
 
 namespace lazy::tags{
@@ -88,8 +88,8 @@ template<typename T, typename L, typename R> struct MaxLazy;
 template<typename T, typename L, typename R> struct MinLazy;
 
 // rules
-template<typename Derived, typename T> struct BinaryOpRules;
-template<typename T> struct CustomBinaryRules;
+template<typename Derived, typename T> struct BinaryEvaluator;
+template<typename T> struct CustomBinaryEvaluator;
 
 
 

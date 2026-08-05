@@ -169,14 +169,14 @@ template<typename U>
 concept isAnyMax = requires {typename std::decay_t<U>::LhsType; typename std::decay_t<U>::RhsType;} && std::is_base_of_v<Max<typename std::decay_t<U>::LhsType, typename std::decay_t<U>::RhsType>, std::decay_t<U>>;
 
 /**
- * @brief Satisfied when `Derived` is a `PatternNode` with a known `Nbranches`.
+ * @brief Satisfied when `Derived` is a `PatternNode` with a known `branch_count`.
  * @details Used internally to detect multi-branch pattern nodes independent of the
  *          specific operation type.
  */
 template<typename Derived>
 concept isPatternNode = requires {
-    std::decay_t<Derived>::Nbranches;
-} && std::is_base_of_v<PatternNode<std::decay_t<Derived>, std::decay_t<Derived>::Nbranches>, std::decay_t<Derived>>;
+    std::decay_t<Derived>::branch_count;
+} && std::is_base_of_v<PatternNode<std::decay_t<Derived>, std::decay_t<Derived>::branch_count>, std::decay_t<Derived>>;
 
 /**
  * @brief Satisfied when `Derived` is a `PatternBinaryOp` with `LhsType` and `RhsType`.
@@ -211,7 +211,7 @@ concept isPatternUnaryOp = requires {
  */
 template<typename Derived, size_t Branches>
 struct PatternNode : public Pattern {
-    static constexpr size_t Nbranches = Branches;
+    static constexpr size_t branch_count = Branches;
 };
 
 /**

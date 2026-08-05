@@ -14,10 +14,10 @@ namespace lazy::detail{
  * @brief Evaluation rules for relational comparisons.
  */
 template<typename T>
-struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
+struct BooleanEvaluator : public BinaryEvaluator<BooleanEvaluator<T>, T>{
 
     template<traits::isBoolTag tag, typename L, typename R>
-    LAZY_FORCE_INLINE static void evaluate(tag, auto& out, const L& a, const R& b){
+    LAZY_FORCE_INLINE static void evaluate(tag, T& out, const L& a, const R& b){
         out = get_bool(tag{}, a, b);
     }
 
@@ -44,31 +44,29 @@ struct CompareRules : public BinaryOpRules<CompareRules<T>, T>{
 };
 
 
-/**
- * @brief CRTP base for relational (boolean-valued) binary expression nodes.
- *
- * Inherits from both `BinaryOperator<Derived,T,L,R>` (to participate in the
- * arithmetic tree as a node) and `CompareRules<T>` (to get `eval_bool` and
- * `get_bool`).
- *
- * The `operator bool()` implicit conversion evaluates the comparison lazily:
- * it calls `Derived::eval_rule(tag{}, out, this->lhs, this->rhs)`, which internally
- * evaluates any `Node` sub-expressions via thread-local scratch before comparing.
- *
- * @tparam Derived The concrete comparison type (e.g. `Gt<T,L,R>`).
- * @tparam T       The arithmetic value type.
- * @tparam L       Left sub-expression type.
- * @tparam R       Right sub-expression type.
- */
 template<typename Derived, typename T, typename L, typename R>
-struct Comparison : public BinaryOperator<Derived, T, L, R>, public CompareRules<T>{
+struct Comparison : public BinaryOperator<Derived, T, L, R>, public BooleanEvaluator<T>{
     using Base = BinaryOperator<Derived, T, L, R>;
     using Base::Base;
 
+    // some times when `out` is boolean, we need to reserve a temporary for **each** branch, as we cannot pass `out` in one of the branches.
+    static constexpr size_t REQUIRED_TEMPORARIES = Base::REQUIRED_TEMPORARIES + (lazy::traits::isNode<L, T> || lazy::traits::isNode<R, T> ? 1 : 0);
+
     operator bool() const{
-        bool out;
-        Derived::eval_rule(typename Derived::tag{}, out, this->lhs, this->rhs);
-        return out;
+        T* workers = this->reserve_workers();
+        if constexpr (lazy::traits::isNode<L, T> && lazy::traits::isNode<R, T>) {
+            T& left = this->template get<0>().eval_impl(workers[0], workers+1);
+            T& right = this->template get<1>().eval_impl(workers[1], workers+2);
+            return this->get_bool(typename Derived::tag{}, left, right);
+        } else if constexpr (lazy::traits::isNode<L, T>) {
+            T& left = this->template get<0>().eval_impl(workers[0], workers+1);
+            return this->get_bool(typename Derived::tag{}, left, this->template get<1>().value());
+        } else if constexpr (lazy::traits::isNode<R, T>) {
+            T& right = this->template get<1>().eval_impl(workers[0], workers+1);
+            return this->get_bool(typename Derived::tag{}, this->template get<0>().value(), right);
+        } else {
+            return this->get_bool(typename Derived::tag{}, this->template get<0>().value(), this->template get<1>().value());
+        }
     }
 };
 

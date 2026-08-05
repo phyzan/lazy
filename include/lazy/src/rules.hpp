@@ -5,53 +5,107 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <algorithm>
+#include <cassert>
+
 
 namespace lazy::detail{
+
+
+template<std::size_t I, typename FirstType, typename... ArgType>
+LAZY_FORCE_INLINE constexpr decltype(auto) helper_pack_elem(FirstType&& x0, ArgType&&... x) {
+    if constexpr (I == 0) {
+        return std::forward<FirstType>(x0);
+    } else {
+        static_assert(sizeof...(x) > 0, "Index out of bounds");
+        return helper_pack_elem<I - 1>(std::forward<ArgType>(x)...);
+    }
+}
+
+template<std::size_t I, typename... Args>
+LAZY_FORCE_INLINE constexpr decltype(auto) pack_elem(Args&&... args) {
+    return helper_pack_elem<I>(std::forward<Args>(args)...);
+}
 
 template<typename Derived, typename T>
 struct NodalEvaluator{
 
     template<lazy::traits::isTag tag, typename... Arg>
-    LAZY_FORCE_INLINE static void evaluate(tag, auto& out, const Arg&... args){
+    LAZY_FORCE_INLINE static void evaluate(tag, T& out, const Arg&... args){
         Derived::evaluate(tag{}, out, args...);
     }
 
     template<lazy::traits::isTag tag, lazy::traits::isLazyExpr<T>... Branch>
-    LAZY_FORCE_INLINE static void eval_rule(tag, auto& out, const Branch&... branch){
-        return eval_rule_impl(std::make_index_sequence<sizeof...(Branch)>{}, tag{}, out, branch...);
+    LAZY_FORCE_INLINE static void eval_rule(tag, T& out, T* worker, const Branch&... branch){
+        return eval_rule_impl(std::make_index_sequence<sizeof...(Branch)>{}, tag{}, out, worker, branch...);
     }
 
 private:
 
+    LAZY_FORCE_INLINE
+    static constexpr void sorted_evaluator(T& out, T* worker){}
+
+    template<typename F, typename... Rest>
+    LAZY_FORCE_INLINE
+    static constexpr void sorted_evaluator(T& out, T* worker, const F& f, const Rest&... branch){
+        // now branches are sorted by the number of required temporaries, with the largest first
+        // First node evaluates into 'out', subsequent nodes into worker[0], worker[1], etc.
+        if constexpr (lazy::traits::isNode<F, T>) {
+            f.eval_impl(out, worker);
+            sorted_evaluator(*worker, worker + 1, branch...);
+        } else {
+            sorted_evaluator(out, worker, branch...);
+        }
+    }
+
+    // Helper to get the evaluated argument for branch at original index OrigIdx
+    template<size_t OrigIdx, typename node_t, lazy::traits::isLazyExpr<T>... Branch>
+    LAZY_FORCE_INLINE static const auto& get_evaluated_arg(T& out, T* worker, const Branch&... branch) {
+        const auto& br = pack_elem<OrigIdx>(branch...);
+        using branch_t = std::decay_t<decltype(br)>;
+
+        if constexpr (lazy::traits::isAtom<branch_t, T>) {
+            return br.value();
+        } else {
+            // Find which node slot this branch was evaluated into
+            constexpr std::array<bool, sizeof...(Branch)> is_node_arr = {
+                lazy::traits::isNode<Branch, T>...
+            };
+
+            // Count how many nodes come before this one in sorted order
+            constexpr int slot = [&](){
+                constexpr auto sorted_idx = node_t::sort_branches_by_required_workers();
+                int node_count = 0;
+                for (size_t i = 0; i < sizeof...(Branch); ++i) {
+                    size_t orig = sorted_idx[i];
+                    if (orig == OrigIdx) { return node_count; }
+                    if (is_node_arr[orig]) { node_count++; }
+                }
+                return -1;
+            }();
+
+            static_assert(slot >= 0, "Node not found in sorted order");
+
+            if constexpr (slot == 0) {
+                return out;
+            } else {
+                return worker[slot - 1];
+            }
+        }
+    }
+
     template<lazy::traits::isTag tag, size_t... I, lazy::traits::isLazyExpr<T>... Branch>
-    LAZY_FORCE_INLINE static void eval_rule_impl(std::index_sequence<I...>, tag, auto& out, const Branch&... branch){
+    LAZY_FORCE_INLINE static void eval_rule_impl(std::index_sequence<I...>, tag, T& out, T* worker, const Branch&... branch){
         // IMPORTANT: out may be the same memory location as at least one of the branches
         static_assert(((not lazy::traits::isLazy<Branch, T>) && ...), "LazyType should not be passed to eval_rule, use RefType instead");
         using node_t = lazy::detail::TypeGetter<T, tag, Branch...>::type;
         static_assert(not std::is_void_v<node_t>, "Invalid node type");
 
-        constexpr size_t required_workers = (lazy::traits::isNode<Branch, T> + ...);
-        static thread_local T* worker = [](){
-            static thread_local std::array<T, required_workers> arr;  // Allocate contiguous array
-            for (T& x: arr){
-                LazyType<T>::workers.push_back(&x);  // Register each element in workers
-            }
-            return arr.data();
-        }();
+        constexpr auto sorted_idx = node_t::sort_branches_by_required_workers();
+        sorted_evaluator(out, worker, pack_elem<sorted_idx[I]>(branch...)...);
 
-        // get_scalar advances the worker pointer for each branch that is a Node
-        T* worker_ref = worker;
-        Derived::evaluate(tag{}, out, get_scalar(branch, worker_ref)...);
-    }
-
-    template<lazy::traits::isLazyExpr<T> branch_t>
-    LAZY_FORCE_INLINE static const auto& get_scalar(const branch_t& lazy_expr, T*& worker_ref){
-        // might modify the worker_ref pointer
-        if constexpr (lazy::traits::isNode<branch_t, T>){
-            return lazy_expr.eval(*(worker_ref++));
-        } else {
-            return lazy_expr.value();
-        }
+        // Call evaluate with arguments in original order
+        Derived::evaluate(tag{}, out, get_evaluated_arg<I, node_t, Branch...>(out, worker, branch...)...);
     }
 };
 

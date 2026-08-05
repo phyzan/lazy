@@ -3,8 +3,10 @@
 
 #include <vector>
 #include <array>
-#include "rules.hpp"
 #include <iostream>
+#include <algorithm>
+#include <numeric>
+#include "rules.hpp"
 
 namespace lazy{
 
@@ -62,36 +64,11 @@ struct ExprBase{
 // Expr — CRTP intermediate base
 // ============================================================================
 
-/**
- * @brief CRTP intermediate base that enriches `ExprBase<T>` with static membership flags
- *        and a compile-time `matches_pattern` check.
- *
- * Every concrete expression type inherits from `Expr<Derived, T>` (transitively via
- * `Atom` or `Node`) and overrides the relevant `static constexpr bool isXxx` flag to
- * `true`.  These flags are used in `BinaryOpRules` / `UnaryOpRules` to branch at
- * compile time without virtual dispatch.
- *
- * @tparam Derived The most-derived type (CRTP).
- * @tparam T       The underlying arithmetic value type.
- */
 template<typename Derived, typename T>
 struct Expr : public ExprBase<T> {
 
     using Base = ExprBase<T>;
     using value_type = T;
-
-    static constexpr bool isAtom  = false;
-    static constexpr bool isNode = false;
-    static constexpr bool isBinaryOperator = false;
-    static constexpr bool isUnary = false;
-    static constexpr bool isAdd = false;
-    static constexpr bool isMul = false;
-    static constexpr bool isDiv = false;
-    static constexpr bool isSub = false;
-    static constexpr bool isPow = false;
-    static constexpr bool isNeg = false;
-    static constexpr bool isLazy = false;
-    static constexpr bool isRef = false;
 
 };
 
@@ -121,8 +98,8 @@ struct Atom : public Expr<Derived, T>{
     using Base = Expr<Derived, T>;
     using value_type = T;
     using branch_t = std::tuple<>;
-    static constexpr size_t Depth = 0;
-    static constexpr bool isAtom = true;
+    static constexpr size_t MAX_DEPTH = 0;
+    static constexpr size_t REQUIRED_TEMPORARIES = 0;
 
     LAZY_FORCE_INLINE const auto& value() const{
         return LAZY_THIS->value();
@@ -136,41 +113,126 @@ struct Atom : public Expr<Derived, T>{
 // Node — unevaluated composite expression nodes
 // ============================================================================
 
-/**
- * @brief CRTP base for composite (unevaluated) expression nodes.
- *
- * A `Node` holds `Branches` sub-expressions and computes `T` only when `eval()` is
- * called.  The CRTP `eval()` call dispatches to `Derived::eval(T& out)` which
- * typically delegates to the relevant `eval_rule` in `BinaryOpRules` or
- * `UnaryOpRules`.
- *
- * The `operator T()` implicit conversion creates a temporary `T` and calls `eval()`
- * on it — use with care for types (like `mpfr::mpreal`) where default construction
- * is expensive or produces an indeterminate value.
- *
- * @tparam Derived   The most-derived type (CRTP).
- * @tparam T         The underlying arithmetic value type.
- * @tparam Branches  Number of child sub-expressions (1 for unary, 2 for binary, etc.).
- */
-template<typename Derived, typename T, size_t Branches>
+template<typename Derived, typename T, typename... Branches>
 struct Node : public Expr<Derived, T>{
 
+    static_assert(sizeof...(Branches) > 0, "Node must have at least one branch");
+    static_assert((traits::isLazyExpr<Branches, T> && ...), "All branches must be lazy expressions");
+
     using Base = Expr<Derived, T>;
-    static constexpr bool isNode = true;
-    static constexpr size_t Nbranches = Branches;
-    static constexpr size_t Depth = 1 + []<size_t... I>(std::index_sequence<I...>){
-        return std::max({size_t{0}, std::tuple_element_t<I, typename Derived::branch_t>::Depth...});
-    }(std::make_index_sequence<Branches>{});
+    using branch_t = std::tuple<Branches...>;
 
-    inline static thread_local T tmp{};
+    static constexpr size_t branch_count = sizeof...(Branches);
+    static constexpr size_t MAX_DEPTH = 1 + []<size_t... I>(std::index_sequence<I...>){
+        return std::max({size_t{0}, std::tuple_element_t<I, typename Derived::branch_t>::MAX_DEPTH...});
+    }(std::make_index_sequence<branch_count>{});
 
-    LAZY_FORCE_INLINE T& eval(T& out) const{
-        return LAZY_THIS->eval(out);
+    static constexpr auto sort_branches_by_required_workers(){
+        std::array<std::size_t, sizeof...(Branches)> indices{};
+        std::array<std::size_t, sizeof...(Branches)> nums{ Branches::REQUIRED_TEMPORARIES... };
+
+        std::iota(indices.begin(), indices.end(), 0);
+
+        std::sort(indices.begin(), indices.end(),
+            [&nums](std::size_t a, std::size_t b) {
+                return nums[a] > nums[b];
+            });
+        return indices;
+    }
+
+    static constexpr std::array<size_t, branch_count> sorted_temporaries(){
+        std::array<std::size_t, branch_count> nums = { Branches::REQUIRED_TEMPORARIES... };
+        std::sort(nums.begin(), nums.end(), std::greater<size_t>());
+        return nums;
+    }
+
+    static constexpr std::array<bool, branch_count> sorted_booleans(){
+        std::array<std::size_t, branch_count> indices{};
+        std::array<std::size_t, branch_count> nums = { Branches::REQUIRED_TEMPORARIES... };
+        std::array<bool, branch_count> is_node = { lazy::traits::isNode<Branches, T>... };
+
+        std::iota(indices.begin(), indices.end(), 0);
+        std::sort(indices.begin(), indices.end(),
+            [&nums](std::size_t a, std::size_t b) {
+                return nums[a] > nums[b];
+            });
+
+        std::array<bool, branch_count> result{};
+        for (size_t i = 0; i < branch_count; i++) {
+            result[i] = is_node[indices[i]];
+        }
+        return result;
+    }
+
+    static constexpr size_t REQUIRED_TEMPORARIES = []<size_t... I>(std::index_sequence<I...>){
+        std::array<size_t, branch_count> nums = sorted_temporaries();
+        std::array<bool, branch_count> is_node = sorted_booleans();
+        size_t node_index = 0;
+        size_t res = 0;
+        for (size_t i = 0; i < branch_count; i++) {
+            if (is_node[i]) {
+                res = std::max(res, node_index + nums[i]);
+                node_index++;
+            }
+        }
+        return res;
+    }(std::make_index_sequence<branch_count>{});
+
+    LAZY_FORCE_INLINE T& eval(T& out) const {
+        T* workers = reserve_workers<false>();
+        return LAZY_THIS->eval_impl(out, workers);
+    }
+
+
+    // TODO Should optimize in case the evaluation is not a T, but e.g. a boolean.
+    LAZY_FORCE_INLINE T& eval_worker() const {
+        T* workers = reserve_workers<true>();
+        return LAZY_THIS->eval_impl(workers[0], workers+1);
+    }
+
+    LAZY_FORCE_INLINE T& eval_impl(T& out, T* workers) const {
+        return make_eval_impl(out, workers, std::make_index_sequence<branch_count>{});
     }
 
     operator T() const {
+        T tmp;
         return LAZY_THIS->eval(tmp);
     }
+
+    template<size_t I>
+    inline const auto& get() const {
+        return std::get<I>(branches);
+    }
+
+    template<size_t I>
+    inline auto& get() {
+        return std::get<I>(branches);
+    }
+
+    template<typename... F>
+    requires (std::is_constructible_v<F, Branches&&> && ...)
+    LAZY_FORCE_INLINE Node(F&&... f) : branches(std::forward<F>(f)...) {}
+
+protected:
+
+    template<bool reserve_output = false>
+    inline static T* reserve_workers() {
+        constexpr size_t n_extra = reserve_output ? 1 : 0;
+        if (Derived::REQUIRED_TEMPORARIES + n_extra > LazyType<T>::workers.size()){
+            LazyType<T>::workers.resize(Derived::REQUIRED_TEMPORARIES + n_extra);
+        }
+        return LazyType<T>::workers.data();
+    }
+
+private:
+
+    template<size_t... I>
+    LAZY_FORCE_INLINE T& make_eval_impl(T& out, T* worker, std::index_sequence<I...>) const {
+        Derived::eval_rule(typename Derived::tag{}, out, worker, make_expr<T>(this->get<I>())...);
+        return out;
+    }
+
+    std::tuple<Branches...> branches;
 
 };
 
@@ -191,9 +253,6 @@ template<typename T>
 struct RefType : public Atom<RefType<T>, T>{
     using Base = Atom<RefType<T>, T>;
 
-
-    static constexpr bool isRef = true;
-
     LAZY_FORCE_INLINE RefType(const T& value) : value_(value) {}
 
     LAZY_FORCE_INLINE const T& value() const {return value_;}
@@ -211,7 +270,7 @@ struct RefType : public Atom<RefType<T>, T>{
  * `value_type` is a different type (e.g. `mpfr::mpreal`).  `make_expr<T>()` produces
  * an `OtherType<T, S>` when `S != T` and `S` is not already an expression.  The
  * `value()` accessor returns the stored `Type` value which is then passed to
- * the `evaluate(tag, out, ..., scalar)` overloads in `CustomBinaryRules<T>`.
+ * the `evaluate(tag, out, ..., scalar)` overloads in `CustomBinaryEvaluator<T>`.
  *
  * @tparam T    The arithmetic value type of the surrounding expression tree.
  * @tparam Type The actual scalar type of the stored value (e.g. `int`, `double`).
@@ -223,8 +282,6 @@ struct OtherType : public Atom<OtherType<T, Type>, T>{
 
     using Base = Atom<OtherType<T, Type>, T>;
     
-    static constexpr bool isLazy = true;
-
     LAZY_FORCE_INLINE OtherType(const Type& value) : value_(value) {}
 
     LAZY_FORCE_INLINE const Type& value() const {return value_;}

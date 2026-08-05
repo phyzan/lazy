@@ -10,73 +10,34 @@ namespace lazy::detail{
 // ============================== Binary Operation nodes ==============================
 
 
-// ============================================================================
-// BinaryOperator — stores lhs/rhs and dispatches to eval_rule
-// ============================================================================
-
-/**
- * @brief CRTP base for all two-operand expression nodes.
- *
- * Holds the left- and right-hand sub-expressions (by value, embedded inline) and
- * provides a concrete `eval(T& out)` that delegates to
- * `Derived::eval_rule(tag{}, out, make_expr<T>(lhs), make_expr<T>(rhs))`.
- *
- * Constructing a `BinaryOperator<Derived,T,L,R>` requires that both `L` and `R` are
- * constructible from the supplied arguments.  See `make_add`, `make_mul`, etc. for
- * the canonical factory functions that build these nodes.
- *
- * @tparam Derived The most-derived type (e.g. `Add<T,L,R>`).
- * @tparam T       The underlying arithmetic value type.
- * @tparam L       The type of the left-hand sub-expression (stored by value).
- * @tparam R       The type of the right-hand sub-expression (stored by value).
- */
 template<typename Derived, typename T, typename L, typename R>
-struct BinaryOperator : public Node<Derived, T, 2>{
+struct BinaryOperator : public Node<Derived, T, L, R>{
 
-    using Base = Node<Derived, T, 2>;
+    using Base = Node<Derived, T, L, R>;
     using LhsType = L;
     using RhsType = R;
-    using branch_t = std::tuple<L, R>;
-    static constexpr bool isBinaryOperator = true;
-    
-    template<typename L2, typename R2>
-    requires (std::is_constructible_v<L, L2&&> && std::is_constructible_v<R, R2&&>)
-    LAZY_FORCE_INLINE BinaryOperator(L2&& lhs, R2&& rhs) : lhs(std::forward<L2>(lhs)), rhs(std::forward<R2>(rhs)) {}
-
-    LAZY_FORCE_INLINE T& eval(T& out) const{
-        Derived::eval_rule(typename Derived::tag{}, out, make_expr<T>(lhs), make_expr<T>(rhs));
-        return out;
-    }
-
-    L lhs; R rhs;
+    using branch_t = std::tuple<L, R>;    
+    using Base::Base;
 };
 
 
 //============================== Binary Operation rules ==============================
 
 template<typename Derived, typename T>
-struct BinaryOpRules : NodalEvaluator<Derived, T> {
+struct BinaryEvaluator : NodalEvaluator<Derived, T> {
+
+    using Base = NodalEvaluator<Derived, T>;
 
     template<lazy::traits::isTag tag, typename L, typename R>
-    inline static void evaluate(tag, T& out, const L& a, const R& b);
+    inline static void evaluate(tag, T& out, const L& a, const R& b){
+        static_assert(false, "BinaryEvaluator::evaluate must be specialised for each performed operation");
+    }
 };
 
 
-/**
- * @brief Primary binary-operation rules for type `T`.
- *
- * A default-constructed `CustomBinaryRules<T>` provides no specialised `evaluate`
- * overloads.  Users should provide a full specialisation
- * for each numeric type `T` to define how `+`, `-`, `*`, `/`, `pow`, `max`, `min`
- * are computed.
- *
- * When no specialisation exists, the library falls back to the default
- * `BinaryOpRules` which uses the built-in operators on raw `T` values.
- *
- * @tparam T The arithmetic value type to specialise for.
- */
+
 template<typename T>
-struct CustomBinaryRules : public BinaryOpRules<CustomBinaryRules<T>, T>{};
+struct CustomBinaryEvaluator : public BinaryEvaluator<CustomBinaryEvaluator<T>, T>{};
 
 /**
  * @brief Expression node for addition: computes `lhs + rhs`.
@@ -84,15 +45,14 @@ struct CustomBinaryRules : public BinaryOpRules<CustomBinaryRules<T>, T>{};
  * @tparam L   The type of the left sub-expression (`isLazyExpr<L,T>` required).
  * @tparam R   The type of the right sub-expression (`isLazyExpr<R,T>` required).
  *
- * Uses `CustomBinaryRules<T>::evaluate(PLUS{}, out, a, b)` for the actual computation.
+ * Uses `CustomBinaryEvaluator<T>::evaluate(PLUS{}, out, a, b)` for the actual computation.
  * The default implementation calls the built-in `T::operator+`; specialise
- * `CustomBinaryRules<T>` to override.
+ * `CustomBinaryEvaluator<T>` to override.
  */
 template<typename T, typename L, typename R>
-struct Add : public BinaryOperator<Add<T, L, R>, T, L, R>, public CustomBinaryRules<T>{
+struct Add : public BinaryOperator<Add<T, L, R>, T, L, R>, public CustomBinaryEvaluator<T>{
 
     using Base = BinaryOperator<Add<T, L, R>, T, L, R>;
-    static constexpr bool isAdd = true;
     using tag = lazy::tags::PLUS;
     using Base::Base;
 
@@ -105,10 +65,9 @@ struct Add : public BinaryOperator<Add<T, L, R>, T, L, R>, public CustomBinaryRu
  * @tparam R   Right sub-expression type.
  */
 template<typename T, typename L, typename R>
-struct Mul : public BinaryOperator<Mul<T, L, R>, T, L, R>, public CustomBinaryRules<T>{
+struct Mul : public BinaryOperator<Mul<T, L, R>, T, L, R>, public CustomBinaryEvaluator<T>{
     
     using Base = BinaryOperator<Mul<T, L, R>, T, L, R>;
-    static constexpr bool isMul = true;
     using tag = lazy::tags::MUL;
     using Base::Base;
 
@@ -121,10 +80,9 @@ struct Mul : public BinaryOperator<Mul<T, L, R>, T, L, R>, public CustomBinaryRu
  * @tparam R   Right (denominator) sub-expression type.
  */
 template<typename T, typename L, typename R>
-struct Div : public BinaryOperator<Div<T, L, R>, T, L, R>, public CustomBinaryRules<T>{
+struct Div : public BinaryOperator<Div<T, L, R>, T, L, R>, public CustomBinaryEvaluator<T>{
     
     using Base = BinaryOperator<Div<T, L, R>, T, L, R>;
-    static constexpr bool isDiv = true;
     using tag = lazy::tags::DIV;
     using Base::Base;
 
@@ -137,9 +95,8 @@ struct Div : public BinaryOperator<Div<T, L, R>, T, L, R>, public CustomBinaryRu
  * @tparam R   Right sub-expression type.
  */
 template<typename T, typename L, typename R>
-struct Sub : public BinaryOperator<Sub<T, L, R>, T, L, R>, public CustomBinaryRules<T>{
+struct Sub : public BinaryOperator<Sub<T, L, R>, T, L, R>, public CustomBinaryEvaluator<T>{
     using Base = BinaryOperator<Sub<T, L, R>, T, L, R>;
-    static constexpr bool isSub = true;
     using tag = lazy::tags::MINUS;
     using Base::Base;
 
@@ -152,9 +109,8 @@ struct Sub : public BinaryOperator<Sub<T, L, R>, T, L, R>, public CustomBinaryRu
  * @tparam R   Exponent sub-expression type.
  */
 template<typename T, typename L, typename R>
-struct Pow : public BinaryOperator<Pow<T, L, R>, T, L, R>, public CustomBinaryRules<T>{
+struct Pow : public BinaryOperator<Pow<T, L, R>, T, L, R>, public CustomBinaryEvaluator<T>{
     using Base = BinaryOperator<Pow<T, L, R>, T, L, R>;
-    static constexpr bool isPow = true;
     using tag = lazy::tags::POW;
     using Base::Base;
 
@@ -171,7 +127,7 @@ struct Pow : public BinaryOperator<Pow<T, L, R>, T, L, R>, public CustomBinaryRu
  * @tparam R   Right sub-expression type.
  */
 template<typename T, typename L, typename R>
-struct MaxLazy : public BinaryOperator<MaxLazy<T, L, R>, T, L, R>, public CustomBinaryRules<T>{
+struct MaxLazy : public BinaryOperator<MaxLazy<T, L, R>, T, L, R>, public CustomBinaryEvaluator<T>{
     using Base = BinaryOperator<MaxLazy<T, L, R>, T, L, R>;
     using Base::Base;
     using tag = lazy::tags::MAX;
@@ -187,7 +143,7 @@ struct MaxLazy : public BinaryOperator<MaxLazy<T, L, R>, T, L, R>, public Custom
  * @tparam R   Right sub-expression type.
  */
 template<typename T, typename L, typename R>
-struct MinLazy : public BinaryOperator<MinLazy<T, L, R>, T, L, R>, public CustomBinaryRules<T>{
+struct MinLazy : public BinaryOperator<MinLazy<T, L, R>, T, L, R>, public CustomBinaryEvaluator<T>{
     using Base = BinaryOperator<MinLazy<T, L, R>, T, L, R>;
     using Base::Base;
     using tag = lazy::tags::MIN;
@@ -320,7 +276,7 @@ LAZY_FORCE_INLINE auto pow(Base&& base, Exp&& exp){
  * @brief Lazy maximum: returns a `MaxLazy<T,L,R>` node.
  *
  * Only participates in overload resolution when at least one argument is an expression.
- * For two concrete `T` values, `CustomBinaryRules<T>::evaluate(MAX{}, ...)` is called
+ * For two concrete `T` values, `CustomBinaryEvaluator<T>::evaluate(MAX{}, ...)` is called
  * during evaluation — specialise that to use e.g. `mpfr_max`.
  */
 template<typename L, typename R>

@@ -15,7 +15,7 @@ namespace lazy::detail{
  * - Construction from raw `T`, from other atoms, and from `Node` expressions
  *   (which evaluates them immediately via `eval()`).
  * - Compound assignment (`+=`, `-=`, `*=`, `/=`) that update `value_` in place
- *   using `CustomBinaryRules<T>`, correctly handling both atom and node operands
+ *   using `CustomBinaryEvaluator<T>`, correctly handling both atom and node operands
  *   without extra temporaries.
  * - Implicit conversion `operator T()` returning `value_` by copy.
  * - Thread-safety for *reading* the scratch pointer registry via `for_each_worker`.
@@ -31,8 +31,6 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     
     using Base = detail::Atom<LazyType<T>, T>;
     
-    static constexpr bool isLazy = true;
-
     // Main constructors and assignment operators
     LazyType() = default;
     LazyType(const LazyType&) = default;
@@ -86,12 +84,12 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     // Compound assignment operators
     template<typename U>
     LAZY_FORCE_INLINE    LazyType& operator+=(U&& other){
-        if constexpr (traits::isAtom<U, T>){
-            detail::CustomBinaryRules<T>::evaluate(lazy::tags::PLUS{}, value_, value_, other.value());
-        } else if constexpr (traits::isNode<U, T>){
-            detail::CustomBinaryRules<T>::eval_rule(lazy::tags::PLUS{}, value_, ref(), other);
+        if constexpr (traits::isNode<U, T>){
+            value_ += other.eval_worker();
+        } else if constexpr (traits::isAtom<U, T>){
+            detail::CustomBinaryEvaluator<T>::evaluate(lazy::tags::PLUS{}, value_, value_, other.value());
         } else {
-            detail::CustomBinaryRules<T>::evaluate(lazy::tags::PLUS{}, value_, value_, other);
+            detail::CustomBinaryEvaluator<T>::evaluate(lazy::tags::PLUS{}, value_, value_, other);
         }
         return *this;
     }
@@ -99,12 +97,12 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     template<typename U>
     LAZY_FORCE_INLINE
     LazyType& operator*=(U&& other){
-        if constexpr (traits::isAtom<U, T>){
-            detail::CustomBinaryRules<T>::evaluate(lazy::tags::MUL{}, value_, value_, other.value());
-        } else if constexpr (traits::isNode<U, T>){
-            detail::CustomBinaryRules<T>::eval_rule(lazy::tags::MUL{}, value_, ref(), other);
+        if constexpr (traits::isNode<U, T>){
+            value_ *= other.eval_worker();
+        } else if constexpr (traits::isAtom<U, T>){
+            detail::CustomBinaryEvaluator<T>::evaluate(lazy::tags::MUL{}, value_, value_, other.value());
         } else {
-            detail::CustomBinaryRules<T>::evaluate(lazy::tags::MUL{}, value_, value_, other);
+            detail::CustomBinaryEvaluator<T>::evaluate(lazy::tags::MUL{}, value_, value_, other);
         }
         return *this;
     }
@@ -112,12 +110,12 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     template<typename U>
     LAZY_FORCE_INLINE
     LazyType& operator-=(U&& other){
-        if constexpr (traits::isAtom<U, T>){
-            detail::CustomBinaryRules<T>::evaluate(lazy::tags::MINUS{}, value_, value_, other.value());
-        } else if constexpr (traits::isNode<U, T>){
-            detail::CustomBinaryRules<T>::eval_rule(lazy::tags::MINUS{}, value_, ref(), other);
+        if constexpr (traits::isNode<U, T>){
+            value_ -= other.eval_worker();
+        } else if constexpr (traits::isAtom<U, T>){
+            detail::CustomBinaryEvaluator<T>::evaluate(lazy::tags::MINUS{}, value_, value_, other.value());
         } else {
-            detail::CustomBinaryRules<T>::evaluate(lazy::tags::MINUS{}, value_, value_, other);
+            detail::CustomBinaryEvaluator<T>::evaluate(lazy::tags::MINUS{}, value_, value_, other);
         }
         return *this;
     }
@@ -125,12 +123,12 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     template<typename U>
     LAZY_FORCE_INLINE
     LazyType& operator/=(U&& other){
-        if constexpr (traits::isAtom<U, T>){
-            detail::CustomBinaryRules<T>::evaluate(lazy::tags::DIV{}, value_, value_, other.value());
-        } else if constexpr (traits::isNode<U, T>){
-            detail::CustomBinaryRules<T>::eval_rule(lazy::tags::DIV{}, value_, ref(), other);
+        if constexpr (traits::isNode<U, T>){
+            value_ /= other.eval_worker();
+        } else if constexpr (traits::isAtom<U, T>){
+            detail::CustomBinaryEvaluator<T>::evaluate(lazy::tags::DIV{}, value_, value_, other.value());
         } else {
-            detail::CustomBinaryRules<T>::evaluate(lazy::tags::DIV{}, value_, value_, other);
+            detail::CustomBinaryEvaluator<T>::evaluate(lazy::tags::DIV{}, value_, value_, other);
         }
         return *this;
     }
@@ -143,15 +141,15 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
 
     template<typename F>
     inline static void for_each_worker(F&& fn) {
-        for (T* p : workers) {fn(*p);};
+        for (T& p : workers) {fn(p);};
     }
+
+    inline static thread_local std::vector<T> workers;
 
 private:
 
     LAZY_FORCE_INLINE RefType<T> ref() const {return RefType<T>(value_);}
     T value_;
-
-    inline static thread_local std::vector<T*> workers;
 
     template<typename A, typename B>
     friend struct NodalEvaluator;

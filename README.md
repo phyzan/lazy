@@ -90,7 +90,7 @@ int main(){
 | Feature | Description |
 |---|---|
 | 🌳 **Expression trees** | Arithmetic builds a statically-typed tree; computation is deferred |
-| 🔌 **Pluggable rules** | Specialise `CustomBinaryRules<T>` / `CustomUnaryRules<T>` for type-specific kernels |
+| 🔌 **Pluggable rules** | Specialise `CustomBinaryEvaluator<T>` / `CustomUnaryEvaluator<T>` for type-specific kernels |
 | 🔢 **MPFR ready** | Include `<lazy/apps/mpfrLazy.hpp>` for full `mpfr::mpreal` support with fused operations |
 | 🏎️ **Zero overhead** | All paths are `LAZY_FORCE_INLINE`; the compiler sees flat arithmetic after optimisation |
 
@@ -177,11 +177,11 @@ Some kernels are required so that all operations can be evaluated, but you can a
 
 ```cpp
 template <>
-struct CustomUnaryRules<MyType>
-    : public UnaryOpRules<CustomUnaryRules<MyType>, MyType>{
+struct CustomUnaryEvaluator<MyType>
+    : public UnaryEvaluator<CustomUnaryEvaluator<MyType>, MyType>{
 
     using T = MyType;
-    using Base = UnaryOpRules<CustomUnaryRules<T>, T>;
+    using Base = UnaryEvaluator<CustomUnaryEvaluator<T>, T>;
     using Base::eval_rule;
     using Base::evaluate;
 
@@ -205,10 +205,10 @@ struct CustomUnaryRules<MyType>
 
 
 template <>
-struct CustomBinaryRules<MyType>
-    : public BinaryOpRules<CustomBinaryRules<MyType>, MyType>{
+struct CustomBinaryEvaluator<MyType>
+    : public BinaryEvaluator<CustomBinaryEvaluator<MyType>, MyType>{
     using T = MyType;
-    using Base = BinaryOpRules<CustomBinaryRules<T>, T>;
+    using Base = BinaryEvaluator<CustomBinaryEvaluator<T>, T>;
     using Base::evaluate;
     using Base::eval_rule;
 

@@ -13,61 +13,47 @@ namespace lazy::detail{
  * @brief Default evaluation policy for unary operations.
  */
 template<typename Derived, typename T>
-struct UnaryOpRules : NodalEvaluator<Derived, T> {
+struct UnaryEvaluator : NodalEvaluator<Derived, T> {
 
     template<lazy::traits::isTag tag, typename Arg>
-    inline static void evaluate(tag, T& out, const Arg& a);
+    inline static void evaluate(tag, T& out, const Arg& a){
+        static_assert(false, "UnaryEvaluator::evaluate must be specialised for each performed operation");
+    }
+
+    // Bypassing the `eval_rule` dispatch for unary operations, for clarity only. Performance should not change.
+    template<lazy::traits::isTag tag, lazy::traits::isLazyExpr<T> Branch>
+    LAZY_FORCE_INLINE static void eval_rule(tag, T& out, T* worker, const Branch& arg){
+        if constexpr (lazy::traits::isNode<Branch, T>) {
+            Derived::evaluate(tag{}, out, arg.eval_impl(out, worker));
+        } else {
+            Derived::evaluate(tag{}, out, arg.value());
+        }
+    }
 };
-
-
-
 
 
 /**
  * @brief Primary unary-operation rules for type `T`.
  *
- * Analogous to `CustomBinaryRules`.  Specialise (via `LAZY_SPECIALIZE_FUNCTIONS`) to
+ * Analogous to `CustomBinaryEvaluator`.  Specialise (via `LAZY_SPECIALIZE_FUNCTIONS`) to
  * provide custom `evaluate` overloads for unary functions such as `abs`, `sqrt`,
  * `neg`, etc.
  *
  * @tparam T The arithmetic value type to specialise for.
  */
 template<typename T>
-struct CustomUnaryRules : public UnaryOpRules<CustomUnaryRules<T>, T>{};
+struct CustomUnaryEvaluator : public UnaryEvaluator<CustomUnaryEvaluator<T>, T>{};
 
 
 
-/**
- * @brief CRTP base for single-argument (unary) expression nodes.
- *
- * Stores the single child expression `arg` by value and evaluates via
- * `Derived::eval_rule(tag{}, out, arg)`.  The `UnaryOpRules` default path
- * evaluates `arg` into a scratch slot if it is a `Node`, then calls
- * `Derived::evaluate(tag{}, out, raw_arg)`.
- *
- * @tparam Derived The concrete unary node type (e.g. `Neg<T,Arg>`).
- * @tparam T       The arithmetic value type.
- * @tparam Arg     The type of the single child sub-expression (`isLazyExpr<Arg,T>`).
- */
 template<typename Derived, typename T, typename Arg>
-struct Unary : public Node<Derived, T, 1>{
+struct Unary : public Node<Derived, T, Arg>{
 
     static_assert(traits::isLazyExpr<Arg, T>, "Unary node argument must be an expression");
 
-    using Base = Node<Derived, T, 1>;
+    using Base = Node<Derived, T, Arg>;
     using branch_t = std::tuple<Arg>;
-    static constexpr bool isUnary = true;
-
-    template<typename Arg2>
-    requires( requires {typename std::decay_t<Arg>::value_type;} && traits::isLazyExpr<std::decay_t<Arg>, typename std::decay_t<Arg>::value_type> )
-    LAZY_FORCE_INLINE Unary(Arg2&& arg) : arg(std::forward<Arg2>(arg)) {}
-
-    LAZY_FORCE_INLINE T& eval(T& out) const{
-        Derived::eval_rule(typename Derived::tag{}, out, make_expr<T>(arg));
-        return out;
-    }
-
-    Arg arg;
+    using Base::Base;
 };
 
 

@@ -4,6 +4,7 @@
 
 #include "patterns/patterns.hpp"
 #include "tags.hpp"
+#include <tuple>
 
 
 // ============================================================================
@@ -115,7 +116,7 @@ using value_typeOf = std::conditional_t<std::is_same_v<value_type<A>, void>, val
 template<typename T> struct ExprBase;
 template<typename Derived, typename T> struct Expr;
 template<typename Derived, typename T> struct Atom;
-template<typename Derived, typename T, size_t Branches> struct Node;
+template<typename Derived, typename T, typename... branch_t> struct Node;
 template<typename T> struct RefType;
 template<typename T, typename Type> struct OtherType;
 template<typename T> struct LazyType;
@@ -169,6 +170,28 @@ constexpr bool lazyConvertCondition = lazy::traits::type_list_contains<std::deca
 
 //=============================================================================
 
+
+// Helpers for identifying a Node expression
+template<typename F, typename T, typename BranchTuple>
+struct NodeBaseCheck;
+
+template<typename F, typename T, typename... Branches>
+struct NodeBaseCheck<F, T, std::tuple<Branches...>> {
+    static constexpr bool value = std::is_base_of_v<lazy::detail::Node<F, T, Branches...>, F>;
+};
+
+template<typename F>
+struct HelperNodeIndentifier{
+    static constexpr bool value = false;
+};
+
+template<typename F>
+requires (requires {typename std::decay_t<F>::branch_t; typename std::decay_t<F>::value_type;})
+struct HelperNodeIndentifier<F>{
+    using D = std::decay_t<F>;
+    static constexpr bool value = NodeBaseCheck<D, typename D::value_type, typename D::branch_t>::value;
+};
+
 template<typename Class, typename T>
 concept isConvertibleTo = lazyConvertCondition<Class, T>;
 
@@ -182,7 +205,7 @@ template<typename F, typename T>
 concept isValidType = isLazyExpr<F, T> || isValidScalar<F, T>;
 
 template<typename Derived, typename T>
-concept isNode = requires { std::decay_t<Derived>::Nbranches; } && std::is_base_of_v< lazy::detail::Node<std::decay_t<Derived>, T, std::decay_t<Derived>::Nbranches>, std::decay_t<Derived>>;
+concept isNode = HelperNodeIndentifier<std::decay_t<Derived>>::value;
 
 template<typename Derived, typename T>
 concept isAtom =std::is_base_of_v<lazy::detail::Atom<std::decay_t<Derived>, T>, std::decay_t<Derived>>;

@@ -8,7 +8,7 @@
  *
  * Expands to:
  * 1. A struct `OP<T, Arg>` inheriting `Unary<OP<T,Arg>, T, Arg>` and
- *    `CustomUnaryRules<T>`, with `tag = TAG`
+ *    `CustomUnaryEvaluator<T>`, with `tag = TAG`
  * 2. A free function `FUNC(U&&)` constrained to any expression type, returning
  *    OP<detail::value_type<U>, std::decay_t<U>>(std::forward<U>(arg))`.
  *
@@ -18,9 +18,8 @@
  */
 #define LAZY_DEFINE_UNARY_OP(FUNC, OP, TAG)                             \
 template<typename T, typename Arg>                                              \
-struct OP : public Unary<OP<T, Arg>, T, Arg>, public CustomUnaryRules<T> {                \
+struct OP : public Unary<OP<T, Arg>, T, Arg>, public CustomUnaryEvaluator<T> {                \
     using Base = Unary<OP<T, Arg>, T, Arg>;                                     \
-    static constexpr bool is##OP = true;                                        \
     using tag = TAG;                                                             \
 };                                                                              \
                                                                                 \
@@ -43,7 +42,7 @@ LAZY_FORCE_INLINE auto FUNC(U&& arg) {                                          
  * @code
  *   LAZY_SPECIALIZE_FUNCTIONS(MyType) {
  *       using T = MyType;
- *       using Base = UnaryOpRules<CustomUnaryRules<T>, T>;
+ *       using Base = UnaryEvaluator<CustomUnaryEvaluator<T>, T>;
  *       using Base::evaluate; using Base::eval_rule;
  *       LAZY_EVALUATE_FUNC(T, a, NEG, T) { out = my_neg(a); }
  *   };
@@ -53,7 +52,7 @@ LAZY_FORCE_INLINE auto FUNC(U&& arg) {                                          
  */
 #define LAZY_SPECIALIZE_FUNCTIONS(Type)\
 template<>\
-struct CustomUnaryRules<Type> : public UnaryOpRules<CustomUnaryRules<Type>, Type>
+struct CustomUnaryEvaluator<Type> : public UnaryEvaluator<CustomUnaryEvaluator<Type>, Type>
 
 /**
  * @brief Declare an `evaluate` overload for a specific unary function and argument type.
