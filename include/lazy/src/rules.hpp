@@ -37,6 +37,8 @@ struct NodalEvaluator{
 
     template<lazy::traits::isTag tag, lazy::traits::isLazyExpr<T>... Branch>
     LAZY_FORCE_INLINE static void eval_rule(tag, T& out, T* worker, const Branch&... branch){
+        // IMPORTANT: out must NOT be the same memory location as at least one of the branches.
+        // See eval_rule_impl for details. TODO: try to allow `out` to be one of the branches, without using more temporaries.
         return eval_rule_impl(std::make_index_sequence<sizeof...(Branch)>{}, tag{}, out, worker, branch...);
     }
 
@@ -96,7 +98,7 @@ private:
 
     template<lazy::traits::isTag tag, size_t... I, lazy::traits::isLazyExpr<T>... Branch>
     LAZY_FORCE_INLINE static void eval_rule_impl(std::index_sequence<I...>, tag, T& out, T* worker, const Branch&... branch){
-        // IMPORTANT: out may be the same memory location as at least one of the branches
+        // IMPORTANT: out must NOT be the same memory location as at least one of the branches: if `out` is contained as a RefType in one of the branches, it will lead to invalid results. The user must ensure that `out` is a separate memory location.
         static_assert(((not lazy::traits::isLazy<Branch, T>) && ...), "LazyType should not be passed to eval_rule, use RefType instead");
         using node_t = lazy::detail::TypeGetter<T, tag, Branch...>::type;
         static_assert(not std::is_void_v<node_t>, "Invalid node type");

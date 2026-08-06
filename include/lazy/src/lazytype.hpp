@@ -50,8 +50,8 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
 
     template<typename U>
     requires (traits::isNode<U, T>)
-    LazyType(U&& value) {
-        value.eval(value_);
+    LazyType(U&& node) {
+        node.eval(value_);
     }
 
     // Construct by forwarding values
@@ -62,8 +62,13 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
     // Assignment operators
     template<traits::isNode<T> U>
     LAZY_FORCE_INLINE
-    LazyType& operator=(U&& other){
-        other.eval(value_);
+    LazyType& operator=(U&& node){
+        /*
+        Do NOT do node.eval(value_) here, because if the node contains a reference to this LazyType,
+        it will lead to invalid results, as the NodeEvaluator assumes `out` is separate memory.
+        See eval_rule_impl for details. TODO: try to allow `out` to be one of the branches, without using more temporaries.
+        */
+        value_ = node.eval_worker();
         return *this;
     }
 
@@ -83,7 +88,8 @@ struct LazyType : public detail::Atom<LazyType<T>, T>{
 
     // Compound assignment operators
     template<typename U>
-    LAZY_FORCE_INLINE    LazyType& operator+=(U&& other){
+    LAZY_FORCE_INLINE
+    LazyType& operator+=(U&& other){
         if constexpr (traits::isNode<U, T>){
             value_ += other.eval_worker();
         } else if constexpr (traits::isAtom<U, T>){
