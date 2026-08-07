@@ -101,8 +101,12 @@ struct Atom : public Expr<Derived, T>{
     static constexpr size_t MAX_DEPTH = 0;
     static constexpr size_t REQUIRED_TEMPORARIES = 0;
 
-    LAZY_FORCE_INLINE const auto& value() const{
+    LAZY_FORCE_INLINE decltype(auto) value() const{
         return LAZY_THIS->value();
+    }
+
+    LAZY_FORCE_INLINE constexpr bool contains_ref(const T& ref) const {
+        return false;
     }
 
     operator T() const { return value(); }
@@ -126,6 +130,12 @@ struct Node : public Expr<Derived, T>{
     static constexpr size_t MAX_DEPTH = 1 + []<size_t... I>(std::index_sequence<I...>){
         return std::max({size_t{0}, std::tuple_element_t<I, typename Derived::branch_t>::MAX_DEPTH...});
     }(std::make_index_sequence<branch_count>{});
+
+    LAZY_FORCE_INLINE constexpr bool contains_ref(const T& ref) const {
+        return [&]<size_t... I>(std::index_sequence<I...>){
+            return ((LAZY_THIS->template get<I>().contains_ref(ref)) || ...);
+        }(std::make_index_sequence<branch_count>{});
+    }
 
     static constexpr auto sort_branches_by_required_workers(){
         std::array<std::size_t, sizeof...(Branches)> indices{};
@@ -179,6 +189,7 @@ struct Node : public Expr<Derived, T>{
     }(std::make_index_sequence<branch_count>{});
 
     LAZY_FORCE_INLINE T& eval(T& out) const {
+        assert(!contains_ref(out) && "Not safe to evaluate a lazy expression into a reference that is contained in the expression tree. This is possibly caused by calling some_lazy_expression.eval(some_variable), where some_variable is part of the expression tree.");
         T* workers = reserve_workers<false>();
         return LAZY_THIS->eval_impl(out, workers);
     }
@@ -254,6 +265,10 @@ struct RefType : public Atom<RefType<T>, T>{
     using Base = Atom<RefType<T>, T>;
 
     LAZY_FORCE_INLINE RefType(const T& value) : value_(value) {}
+
+    LAZY_FORCE_INLINE constexpr bool contains_ref(const T& ref) const {
+        return &ref == &value_;
+    }
 
     LAZY_FORCE_INLINE const T& value() const {return value_;}
 

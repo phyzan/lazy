@@ -145,9 +145,9 @@ bool result = cmp;     // evaluates lazily
 
 ## ⚙️ Customizing lazy evaluation for other types
 
-Firstly, the types that you want a custom type to interact with must be specified, so that for other types, the mathematical operators will not be overloaded. For example, for mpfr::mpreal, as it is an arbitrary precision type, we want to allow lazy evaluation with types such as double, float, int, etc. For this purpose, the struct ```lazy::traits::ValidTypes<T>``` must be specialized.
+Firstly, the types that you want a ```LazyType<YourType>``` to interact with must be specified, so that for other types, the mathematical operators will not be overloaded. For example, for mpfr::mpreal, as it is an arbitrary precision type, we want to allow lazy evaluation with types such as double, float, int, etc. For this purpose, the struct ```lazy::traits::ValidTypes<T>``` must be specialized.
 
-This must be overriden for each type that the user requires lazy evaluation for.
+This must be overridden for each type that the user requires lazy evaluation for.
 It represents the types that can be implicitly converted to T. This explicit list is required to avoid converting from types that are built for different behavior but have implicit conversion operators to T, and converting them to T would result in a loss of the original behavior. So we prioritize the mathematical operator overloads of such other types over the implicit conversion to T. For example, if T is mpfr::mpreal, and there is a type Foo that has an implicit conversion operator to mpfr::mpreal, but Foo has its own operator overloads for +, -, *, /, etc., then we do not want to convert Foo to mpfr::mpreal and use the mpfr::mpreal operator overloads.
 
 In order to specialize the ```ValidType``` struct and allow a type to interact with e.g. int, float, long and size_t for lazy evaluation (allowing them to be implicitly converted to the type), the following code can be used:
@@ -229,8 +229,9 @@ struct CustomBinaryEvaluator<MyType>
 
 ## 🧵 Thread Safety
 
-Each unique sub-expression branch of an algebraic tree gets its own **thread-local** scratch array. This means:
+Each thread allocates its own scratch space for temporary values, so that multiple threads can evaluate the same expression concurrently. However, a single `LazyType<T>` variable must not be written from multiple threads simultaneously, given that its underlying type `T` is not thread-safe.
 
-- ✅ Multiple threads can evaluate expressions of the **same type** concurrently
-- ⚠️ A single `LazyType<T>` variable must not be written from multiple threads
-  simultaneously (it is not atomic)
+
+## Notes for `LazyType<mpfr::mpreal>`
+
+The `mpfr` library provides functions for each operation (e.g. addition, multiplication, etc.) that take a rounding mode as an argument. The `LazyType<mpfr::mpreal>` specialization uses these functions, and by default, it passes `mpfr::mpreal::get_default_rnd()` in each operation. However, for most use cases, rounding to nearest is sufficient, so hardcoding `MPFR_RNDN` in all lazy operations will increase performance. In order to hardcode the rounding mode, the user can pass the macro `LAZY_MPFR_RND` with the desired rounding mode found in mpfr.h, e.g. `-DLAZY_MPFR_RND=MPFR_RNDN` to the compiler.
