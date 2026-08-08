@@ -20,7 +20,6 @@ namespace lazy::detail{
  * - Compound assignment (`+=`, `-=`, `*=`, `/=`) that update `value_` in place
  *   using `CustomBinaryEvaluator<T>`, correctly handling both atom and node operands
  *   without extra temporaries.
- * - Implicit conversion `operator T()` returning `value_` by copy.
  * - Thread-safety for *reading* the scratch pointer registry via `for_each_worker`.
  *
  * **Note:** `make_expr<T>()` converts an lvalue `LazyType<T>` to `RefType<T>` so

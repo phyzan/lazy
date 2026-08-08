@@ -188,11 +188,6 @@ struct Node : public Expr<Derived, T>{
         return make_eval_impl(out, workers, std::make_index_sequence<branch_count>{});
     }
 
-    operator T() const {
-        T tmp;
-        return LAZY_THIS->eval(tmp);
-    }
-
     template<size_t I>
     inline const auto& get() const {
         return std::get<I>(branches);
