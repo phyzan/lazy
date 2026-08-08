@@ -67,7 +67,7 @@ private:
         using branch_t = std::decay_t<decltype(br)>;
 
         if constexpr (lazy::traits::isAtom<branch_t, T>) {
-            return br.value();
+            return get_value(br);
         } else {
             // Find which node slot this branch was evaluated into
             constexpr std::array<bool, sizeof...(Branch)> is_node_arr = {

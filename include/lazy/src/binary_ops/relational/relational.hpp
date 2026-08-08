@@ -60,12 +60,12 @@ struct Comparison : public BinaryOperator<Derived, T, L, R>, public BooleanEvalu
             return this->get_bool(typename Derived::tag{}, left, right);
         } else if constexpr (lazy::traits::isNode<L, T>) {
             T& left = this->template get<0>().eval_impl(workers[0], workers+1);
-            return this->get_bool(typename Derived::tag{}, left, this->template get<1>().value());
+            return this->get_bool(typename Derived::tag{}, left, get_value(this->template get<1>()));
         } else if constexpr (lazy::traits::isNode<R, T>) {
             T& right = this->template get<1>().eval_impl(workers[0], workers+1);
-            return this->get_bool(typename Derived::tag{}, this->template get<0>().value(), right);
+            return this->get_bool(typename Derived::tag{}, get_value(this->template get<0>()), right);
         } else {
-            return this->get_bool(typename Derived::tag{}, this->template get<0>().value(), this->template get<1>().value());
+            return this->get_bool(typename Derived::tag{}, get_value(this->template get<0>()), get_value(this->template get<1>()));
         }
     }
 };

@@ -10,7 +10,7 @@
  * 1. A struct `OP<T, Arg>` inheriting `Unary<OP<T,Arg>, T, Arg>` and
  *    `CustomUnaryEvaluator<T>`, with `tag = TAG`
  * 2. A free function `FUNC(U&&)` constrained to any expression type, returning
- *    OP<detail::value_type<U>, std::decay_t<U>>(std::forward<U>(arg))`.
+ *    OP<detail::lazy_value_type<U>, std::decay_t<U>>(std::forward<U>(arg))`.
  *
  * @param FUNC     The function name (e.g. `abs`, `sqrt`).
  * @param OP       The node struct name (e.g. `Abs`, `Sqrt`).
@@ -26,11 +26,11 @@ struct OP : public Unary<OP<T, Arg>, T, Arg>, public CustomUnaryEvaluator<T> {  
 \
 template<typename U>                                                            \
 requires (                                                                      \
-    requires { typename std::decay_t<U>::value_type; } &&                         \
-    traits::isLazyExpr<std::decay_t<U>, typename std::decay_t<U>::value_type>                 \
+    requires { typename std::decay_t<U>::lazy_value_type; } &&                         \
+    traits::isLazyExpr<std::decay_t<U>, typename std::decay_t<U>::lazy_value_type>                 \
 )                                                                               \
 LAZY_FORCE_INLINE auto FUNC(U&& arg) {                                               \
-    using T = detail::value_type<U>;                                              \
+    using T = detail::lazy_value_type<U>;                                              \
     auto arg_expr = make_expr<T>(std::forward<U>(arg));                         \
     return OP<T, std::decay_t<decltype(arg_expr)>>(std::move(arg_expr));        \
 }

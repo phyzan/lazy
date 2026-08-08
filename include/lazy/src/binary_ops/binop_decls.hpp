@@ -8,14 +8,14 @@
  * @brief Constraint: at least one of `L`, `R` is a lazy expression type. The other type may be a lazy expression or a raw value convertible to `T`.
  *
  * Expands to an `&&`-expression that is `true` when `std::decay_t<L>` or
- * `std::decay_t<R>` (or both) expose a `value_type` alias and derive from
- * `ExprBase<value_type>`.  Used as a `requires` clause on all arithmetic and
+ * `std::decay_t<R>` (or both) expose a `lazy_value_type` alias and derive from
+ * `ExprBase<lazy_value_type>`.  Used as a `requires` clause on all arithmetic and
  * relational operator overloads to ensure they only activate for expression
  * operands and do not shadow built-in arithmetic.
  */
 #define LAZY_REQUIREMENT(L, R)\
-    ( (requires {typename std::decay_t<L>::value_type;} && lazy::traits::isLazyExpr<std::decay_t<L>, typename std::decay_t<L>::value_type> && lazy::traits::isValidType<std::decay_t<R>, typename std::decay_t<L>::value_type>) || \
-      (requires {typename std::decay_t<R>::value_type;} && lazy::traits::isLazyExpr<std::decay_t<R>, typename std::decay_t<R>::value_type> && lazy::traits::isValidType<std::decay_t<L>, typename std::decay_t<R>::value_type>) )
+    ( (requires {typename std::decay_t<L>::lazy_value_type;} && lazy::traits::isLazyExpr<std::decay_t<L>, typename std::decay_t<L>::lazy_value_type> && lazy::traits::isValidType<std::decay_t<R>, typename std::decay_t<L>::lazy_value_type>) || \
+      (requires {typename std::decay_t<R>::lazy_value_type;} && lazy::traits::isLazyExpr<std::decay_t<R>, typename std::decay_t<R>::lazy_value_type> && lazy::traits::isValidType<std::decay_t<L>, typename std::decay_t<R>::lazy_value_type>) )
 
 
 /**

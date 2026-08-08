@@ -57,7 +57,7 @@ namespace lazy::detail {
  *
  * This is the root concept for the entire expression-template hierarchy.  Any type
  * that participates in lazy arithmetic must satisfy this concept for the same `T`
- * that its `value_type` alias names.
+ * that its `lazy_value_type` alias names.
  *
  * @tparam Derived The candidate expression type (references and cv-qualifiers are stripped).
  * @tparam T       The underlying arithmetic value type (e.g. `double`, `mpfr::mpreal`).
@@ -66,13 +66,13 @@ namespace lazy::detail {
 
 
 // ============================================================================
-// value_type trait  —  extracts the value type from an expression
+// lazy_value_type trait  —  extracts the value type from an expression
 // ============================================================================
 
 /**
- * @brief Primary trait: extract the `value_type` alias from an expression type `T`.
+ * @brief Primary trait: extract the `lazy_value_type` alias from an expression type `T`.
  *
- * Defaults to `void` when `T` does not have a nested `::value_type` alias.  The
+ * Defaults to `void` when `T` does not have a nested `::lazy_value_type` alias.  The
  * partial specialisation below overrides this for all expression types.
  *
  * @tparam T Candidate type (may or may not be an expression).
@@ -82,33 +82,33 @@ struct value_typeTrait {
     using Type = void;
 };
 
-/// @brief Specialisation for types that do expose `::value_type`.
+/// @brief Specialisation for types that do expose `::lazy_value_type`.
 template<typename T>
-requires (requires {typename std::decay_t<T>::value_type;})
+requires (requires {typename std::decay_t<T>::lazy_value_type;})
 struct value_typeTrait<T> {
-    using Type = typename std::decay_t<T>::value_type;
+    using Type = typename std::decay_t<T>::lazy_value_type;
 };
 
-/// @brief Convenience alias: `value_type<E>` == `value_typeTrait<E>::Type`.
+/// @brief Convenience alias: `lazy_value_type<E>` == `value_typeTrait<E>::Type`.
 template<typename E>
-using value_type = typename value_typeTrait<E>::Type;
+using lazy_value_type = typename value_typeTrait<E>::Type;
 
 
 /**
- * @brief Derives the common `value_type` from a pair of operand types.
+ * @brief Derives the common `lazy_value_type` from a pair of operand types.
  *
  * Rules:
- * - If both `A` and `B` expose a `value_type` and they are the same, the result is that type.
- * - If only one side has a `value_type` (the other is `void`, e.g. a raw scalar), that
- *   side's `value_type` is used.
- * - It is ill-formed for **both** to have `void` `value_type` (neither would be an expression).
+ * - If both `A` and `B` expose a `lazy_value_type` and they are the same, the result is that type.
+ * - If only one side has a `lazy_value_type` (the other is `void`, e.g. a raw scalar), that
+ *   side's `lazy_value_type` is used.
+ * - It is ill-formed for **both** to have `void` `lazy_value_type` (neither would be an expression).
  *
  * @tparam A Left operand type.
  * @tparam B Right operand type.
  */
 template<typename A, typename B>
-requires ((std::is_same_v<value_type<A>, value_type<B>> || std::is_same_v<value_type<A>, void> || std::is_same_v<value_type<B>, void>) && !(std::is_same_v<value_type<A>, void> && std::is_same_v<value_type<B>, void>))
-using value_typeOf = std::conditional_t<std::is_same_v<value_type<A>, void>, value_type<B>, value_type<A>>;
+requires ((std::is_same_v<lazy_value_type<A>, lazy_value_type<B>> || std::is_same_v<lazy_value_type<A>, void> || std::is_same_v<lazy_value_type<B>, void>) && !(std::is_same_v<lazy_value_type<A>, void> && std::is_same_v<lazy_value_type<B>, void>))
+using value_typeOf = std::conditional_t<std::is_same_v<lazy_value_type<A>, void>, lazy_value_type<B>, lazy_value_type<A>>;
 
 
 
@@ -125,6 +125,8 @@ template<typename T> struct LazyType;
 template<typename T, typename R>
 LAZY_FORCE_INLINE decltype(auto) make_expr(R&& value);
 
+template<typename F>
+LAZY_FORCE_INLINE const auto& get_value(F&& value);
 
 template<typename From, typename To>
 using copy_const_t = std::conditional_t<std::is_const_v<From>, const To, To>;
@@ -186,10 +188,10 @@ struct HelperNodeIndentifier{
 };
 
 template<typename F>
-requires (requires {typename std::decay_t<F>::branch_t; typename std::decay_t<F>::value_type;})
+requires (requires {typename std::decay_t<F>::branch_t; typename std::decay_t<F>::lazy_value_type;})
 struct HelperNodeIndentifier<F>{
     using D = std::decay_t<F>;
-    static constexpr bool value = NodeBaseCheck<D, typename D::value_type, typename D::branch_t>::value;
+    static constexpr bool value = NodeBaseCheck<D, typename D::lazy_value_type, typename D::branch_t>::value;
 };
 
 template<typename Class, typename T>
@@ -217,7 +219,7 @@ template<typename Derived, typename T>
 concept isLazy = std::is_base_of_v<lazy::detail::LazyType<T>, std::decay_t<Derived>>;
 
 template<typename F>
-concept isAnyLazyExpr = requires { typename std::decay_t<F>::value_type; } && isLazyExpr<std::decay_t<F>, typename std::decay_t<F>::value_type>;
+concept isAnyLazyExpr = requires { typename std::decay_t<F>::lazy_value_type; } && isLazyExpr<std::decay_t<F>, typename std::decay_t<F>::lazy_value_type>;
 
 } // namespace lazy::traits
 

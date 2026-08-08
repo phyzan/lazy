@@ -26,7 +26,7 @@ struct UnaryEvaluator : NodalEvaluator<Derived, T> {
         if constexpr (lazy::traits::isNode<Branch, T>) {
             Derived::evaluate(tag{}, out, arg.eval_impl(out, worker));
         } else {
-            Derived::evaluate(tag{}, out, arg.value());
+            Derived::evaluate(tag{}, out, get_value(arg));
         }
     }
 };
@@ -84,19 +84,19 @@ LAZY_DEFINE_UNARY_OP(erf, Erf, lazy::tags::ERF)
 
 template<lazy::traits::isAnyLazyExpr F>
 std::ostream& operator<<(std::ostream& os, const F& expr){
-    using T = typename F::value_type;
+    using T = typename F::lazy_value_type;
     T value = expr;
     return os << value;
 }
 
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const LazyType<T>& expr){
-    return os << expr.value();
+    return os << get_value(expr);
 }
 
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const RefType<T>& expr){
-    return os << expr.value();
+    return os << get_value(expr);
 }
 
 } // namespace lazy::detail
@@ -127,7 +127,7 @@ using lazy::detail::abs,
       lazy::detail::tanh,
       lazy::detail::erf;
 
-} // namespace lazy::detail
+} // namespace lazy
 
 
 #endif // LAZY_UNARY_OPS_HPP

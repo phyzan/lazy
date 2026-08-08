@@ -45,10 +45,10 @@ int main(){
     std::cout << "Time taken:                   " << time_T << " ms" << std::endl;
     std::cout << "Time taken with LazyType:     " << time_CT << " ms" << std::endl;
     std::cout << "Value with mpreal:            " << res << std::endl; 
-    std::cout << "Value with LazyType        :  " << res2.value() << std::endl;
+    std::cout << "Value with LazyType        :  " << res2 << std::endl;
     std::cout << "Speedup:                      " << (double(time_T) / (double)time_CT) << "x" << std::endl;
 
-    //g++ -std=c++20 -O3 -DNDEBUG -Iinclude example.cpp -o example -lmpfr -lgmp
-    // or clang++
+    // g++ -O3 -std=c++20 -DNDEBUG -DLAZY_MPFR_RND=MPFR_RNDN -Iinclude example.cpp -o test -lmpfr -lgmp
+    // test with clang++
 
 }

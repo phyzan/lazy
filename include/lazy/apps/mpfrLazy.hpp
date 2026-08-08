@@ -495,9 +495,9 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
     /// 3-operand sum: `a + (b + c)` via `mpfr_sum` for improved accuracy.
     LAZY_OVERRIDE_OPER(T, a, b, T, lazy::tags::PLUS, Add_T_T){
         // b is an Add expression with lhs and rhs
-        T& a_mut = const_cast<T&>(a.value());
-        T& b_lhs_mut = const_cast<T&>(b.get<0>().value());
-        T& b_rhs_mut = const_cast<T&>(b.get<1>().value());
+        T& a_mut = const_cast<T&>(get_value(a));
+        T& b_lhs_mut = const_cast<T&>(get_value(b.get<0>()));
+        T& b_rhs_mut = const_cast<T&>(get_value(b.get<1>()));
         mpfr_ptr tmp[3] = {a_mut.mpfr_ptr(), b_lhs_mut.mpfr_ptr(), b_rhs_mut.mpfr_ptr()};
         mpfr_sum(out.mpfr_ptr(), tmp, 3, LAZY_MPFR_RND);
     }
@@ -506,36 +506,36 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
     LAZY_OVERRIDE_OPER(T, a, b, T, lazy::tags::PLUS, Mul_T_T){
         // b is a Mul expression with lhs and rhs
         mpfr_fma(out.mpfr_ptr(),
-                 b.get<0>().value().mpfr_srcptr(),
-                 b.get<1>().value().mpfr_srcptr(),
-                 a.value().mpfr_srcptr(),
+                 get_value(b.get<0>()).mpfr_srcptr(),
+                 get_value(b.get<1>()).mpfr_srcptr(),
+                 get_value(a).mpfr_srcptr(),
                  LAZY_MPFR_RND);
     }
 
     /// Fused multiply-add (commuted): `a*b + c` via `mpfr_fma`.
     LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, lazy::tags::PLUS, T){
         mpfr_fma(out.mpfr_ptr(),
-                 a.get<0>().value().mpfr_srcptr(),
-                 a.get<1>().value().mpfr_srcptr(),
-                 b.value().mpfr_srcptr(),
+                 get_value(a.get<0>()).mpfr_srcptr(),
+                 get_value(a.get<1>()).mpfr_srcptr(),
+                 get_value(b).mpfr_srcptr(),
                  LAZY_MPFR_RND);
     }
 
     /// Fused multiply-subtract: `a*b - c` via `mpfr_fms`.
     LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, lazy::tags::MINUS, T){
         mpfr_fms(out.mpfr_ptr(),
-                 a.get<0>().value().mpfr_srcptr(),
-                 a.get<1>().value().mpfr_srcptr(),
-                 b.value().mpfr_srcptr(),
+                 get_value(a.get<0>()).mpfr_srcptr(),
+                 get_value(a.get<1>()).mpfr_srcptr(),
+                 get_value(b).mpfr_srcptr(),
                  LAZY_MPFR_RND);
     }
 
     /// Negated fused multiply-subtract: `c - a*b` via `mpfr_fms` followed by negation.
     LAZY_OVERRIDE_OPER(T, a, b, T, lazy::tags::MINUS, Mul_T_T){
         mpfr_fms(out.mpfr_ptr(),
-                 b.get<0>().value().mpfr_srcptr(),
-                 b.get<1>().value().mpfr_srcptr(),
-                 a.value().mpfr_srcptr(),
+                 get_value(b.get<0>()).mpfr_srcptr(),
+                 get_value(b.get<1>()).mpfr_srcptr(),
+                 get_value(a).mpfr_srcptr(),
                  LAZY_MPFR_RND);
         mpfr_neg(out.mpfr_ptr(), out.mpfr_srcptr(), LAZY_MPFR_RND);
     }
@@ -544,20 +544,20 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
     /// Fused multiply-multiply-add: `a*b + c*d` via `mpfr_fmma` (MPFR >= 4.0).
     LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, lazy::tags::PLUS, Mul_T_T){
         mpfr_fmma(out.mpfr_ptr(),
-                  a.get<0>().value().mpfr_srcptr(),
-                  a.get<1>().value().mpfr_srcptr(),
-                  b.get<0>().value().mpfr_srcptr(),
-                  b.get<1>().value().mpfr_srcptr(),
+                  get_value(a.get<0>()).mpfr_srcptr(),
+                  get_value(a.get<1>()).mpfr_srcptr(),
+                  get_value(b.get<0>()).mpfr_srcptr(),
+                  get_value(b.get<1>()).mpfr_srcptr(),
                   LAZY_MPFR_RND);
     }
 
     /// Fused multiply-multiply-subtract: `a*b - c*d` via `mpfr_fmms` (MPFR >= 4.0).
     LAZY_OVERRIDE_OPER(T, a, b, Mul_T_T, lazy::tags::MINUS, Mul_T_T){
         mpfr_fmms(out.mpfr_ptr(),
-                  a.get<0>().value().mpfr_srcptr(),
-                  a.get<1>().value().mpfr_srcptr(),
-                  b.get<0>().value().mpfr_srcptr(),
-                  b.get<1>().value().mpfr_srcptr(),
+                  get_value(a.get<0>()).mpfr_srcptr(),
+                  get_value(a.get<1>()).mpfr_srcptr(),
+                  get_value(b.get<0>()).mpfr_srcptr(),
+                  get_value(b.get<1>()).mpfr_srcptr(),
                   LAZY_MPFR_RND);
     }
 #endif // MPFR_VERSION >= 4.0
@@ -565,18 +565,8 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
 };
 
 
-/**
- * @brief Check whether a `LazyType<mpfr::mpreal>` holds a finite value.
- *
- * Delegates to `mpfr::isfinite` on the underlying `mpfr::mpreal` value.
- * Provided so that generic numerical algorithms using `std::isfinite`-like calls
- * work with lazy mpreal variables without explicit `value()` extraction.
- *
- * @param x  A lazy mpreal variable.
- * @return   `true` if `x.value()` is finite (not ±inf or NaN).
- */
 inline bool isfinite(const LazyType<mpfr::mpreal>& x){
-    return mpfr::isfinite(x.value());
+    return mpfr::isfinite(get_value(x));
 }
 
 

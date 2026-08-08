@@ -6,6 +6,7 @@
 #include <iostream>
 #include <algorithm>
 #include <numeric>
+#include "core_decls.hpp"
 #include "rules.hpp"
 
 namespace lazy{
@@ -27,7 +28,7 @@ namespace detail{
  * Deriving from `ExprBase<T>` opts a type into the `isLazyExpr<D,T>` concept and provides
  * service types used throughout the library:
  *
- * - `value_type` — the underlying arithmetic type (carries `T` into derived classes via
+ * - `lazy_value_type` — the underlying arithmetic type (carries `T` into derived classes via
  *   the nested alias).
  * - `expr_storage_t<E>` — determines how sub-expressions are stored inside composite
  *   nodes: raw `T` values are stored as `const T&` (reference to an existing object),
@@ -40,7 +41,7 @@ namespace detail{
 template<typename T>
 struct ExprBase{
 
-    using value_type = T;
+    using lazy_value_type = T;
 
     template<typename E>
     struct expr_storage {
@@ -68,7 +69,7 @@ template<typename Derived, typename T>
 struct Expr : public ExprBase<T> {
 
     using Base = ExprBase<T>;
-    using value_type = T;
+    using lazy_value_type = T;
 
 };
 
@@ -77,39 +78,21 @@ struct Expr : public ExprBase<T> {
 // ============================================================================
 
 /**
- * @brief CRTP base for leaf nodes that hold a value directly accessible via `value()`.
- *
- * Atoms never need temporary storage for evaluation.  The `value()` call simply returns
- * a reference to the stored or referenced `T` (or compatible) value.  Atoms also
- * provide an `operator T()` implicit conversion for ergonomic use in regular code.
- *
- * Concrete atom types:
- * - `RefType<T>` — holds a `const T&` (non-owning reference into an existing `LazyType`).
- * - `LazyType<T>` — owns a `T` value; the primary user-facing variable type.
- * - `OtherType<T,Type>` — wraps a scalar of a *different* type `Type` (e.g. `int` in a
- *   `double`-typed expression).
- *
- * @tparam Derived The most-derived type (CRTP).
- * @tparam T       The underlying arithmetic value type.
+ * @brief CRTP base for leaf nodes that hold a scalar value directly accessible via lazy::detail::get_value(atom).
  */
 template<typename Derived, typename T>
 struct Atom : public Expr<Derived, T>{
 
     using Base = Expr<Derived, T>;
-    using value_type = T;
+    using lazy_value_type = T;
     using branch_t = std::tuple<>;
     static constexpr size_t MAX_DEPTH = 0;
     static constexpr size_t REQUIRED_TEMPORARIES = 0;
 
-    LAZY_FORCE_INLINE decltype(auto) value() const{
-        return LAZY_THIS->value();
-    }
-
-    LAZY_FORCE_INLINE constexpr bool contains_ref(const T& ref) const {
+    LAZY_FORCE_INLINE constexpr bool contains_lazy_ref(const T& ref) const {
+        // Derived classes might override this
         return false;
     }
-
-    operator T() const { return value(); }
 
 };
 
@@ -131,9 +114,9 @@ struct Node : public Expr<Derived, T>{
         return std::max({size_t{0}, std::tuple_element_t<I, typename Derived::branch_t>::MAX_DEPTH...});
     }(std::make_index_sequence<branch_count>{});
 
-    LAZY_FORCE_INLINE constexpr bool contains_ref(const T& ref) const {
+    LAZY_FORCE_INLINE constexpr bool contains_lazy_ref(const T& ref) const {
         return [&]<size_t... I>(std::index_sequence<I...>){
-            return ((LAZY_THIS->template get<I>().contains_ref(ref)) || ...);
+            return ((LAZY_THIS->template get<I>().contains_lazy_ref(ref)) || ...);
         }(std::make_index_sequence<branch_count>{});
     }
 
@@ -189,7 +172,7 @@ struct Node : public Expr<Derived, T>{
     }(std::make_index_sequence<branch_count>{});
 
     LAZY_FORCE_INLINE T& eval(T& out) const {
-        assert(!contains_ref(out) && "Not safe to evaluate a lazy expression into a reference that is contained in the expression tree. This is possibly caused by calling some_lazy_expression.eval(some_variable), where some_variable is part of the expression tree.");
+        assert(!contains_lazy_ref(out) && "Not safe to evaluate a lazy expression into a reference that is contained in the expression tree. This is possibly caused by calling some_lazy_expression.eval(some_variable), where some_variable is part of the expression tree.");
         T* workers = reserve_workers<false>();
         return LAZY_THIS->eval_impl(out, workers);
     }
@@ -264,15 +247,13 @@ template<typename T>
 struct RefType : public Atom<RefType<T>, T>{
     using Base = Atom<RefType<T>, T>;
 
-    LAZY_FORCE_INLINE RefType(const T& value) : value_(value) {}
+    LAZY_FORCE_INLINE RefType(const T& v) : value(v) {}
 
-    LAZY_FORCE_INLINE constexpr bool contains_ref(const T& ref) const {
-        return &ref == &value_;
+    LAZY_FORCE_INLINE constexpr bool contains_lazy_ref(const T& ref) const {
+        return &ref == &value;
     }
 
-    LAZY_FORCE_INLINE const T& value() const {return value_;}
-
-    Base::template expr_storage_t<T> value_;
+    Base::template expr_storage_t<T> value;
 
 };
 
@@ -282,9 +263,9 @@ struct RefType : public Atom<RefType<T>, T>{
  *        `T`-typed expression tree.
  *
  * Used when a raw scalar (e.g. `int` or `double`) is mixed into an expression whose
- * `value_type` is a different type (e.g. `mpfr::mpreal`).  `make_expr<T>()` produces
+ * `lazy_value_type` is a different type (e.g. `mpfr::mpreal`).  `make_expr<T>()` produces
  * an `OtherType<T, S>` when `S != T` and `S` is not already an expression.  The
- * `value()` accessor returns the stored `Type` value which is then passed to
+ * `value` data member is then passed to
  * the `evaluate(tag, out, ..., scalar)` overloads in `CustomBinaryEvaluator<T>`.
  *
  * @tparam T    The arithmetic value type of the surrounding expression tree.
@@ -297,11 +278,9 @@ struct OtherType : public Atom<OtherType<T, Type>, T>{
 
     using Base = Atom<OtherType<T, Type>, T>;
     
-    LAZY_FORCE_INLINE OtherType(const Type& value) : value_(value) {}
+    LAZY_FORCE_INLINE OtherType(const Type& v) : value(v) {}
 
-    LAZY_FORCE_INLINE const Type& value() const {return value_;}
-    
-    Type value_;
+    Type value;
 
 };
 
@@ -315,9 +294,9 @@ struct OtherType : public Atom<OtherType<T, Type>, T>{
  *
  * | Input type                  | Output type                              |
  * |-----------------------------|------------------------------------------|
- * | `LazyType<T>` lvalue        | `RefType<T>(value.value())`              |
+ * | `LazyType<T>` lvalue        | `RefType<T>(get_value(value))`           |
  * | `LazyType<T>` rvalue        | `LazyType<T>(std::move(value))`          |
- * | Any other `isLazyExpr<T>` type  | Forwarded as-is (no copy)                |
+ * | Any other `isLazyExpr<T>`   | Forwarded as-is (no copy)            |
  * | Exactly `T` lvalue          | `RefType<T>(value)` (reference to `T`)   |
  * | Exactly `T` rvalue          | `LazyType<T>(value)` (takes ownership)   |
  * | Any other scalar `S`        | `OtherType<T, S>(value)`                 |
@@ -334,7 +313,7 @@ LAZY_FORCE_INLINE decltype(auto) make_expr(R&& value){
     static_assert(lazy::traits::isValidType<R, T>, "Invalid type for make_expr");
 
     if constexpr (lazy::traits::isLazy<R, T> && std::is_lvalue_reference_v<R>) {
-        return RefType<T>(value.value());
+        return RefType<T>(get_value(std::forward<R>(value)));
     } else if constexpr (std::is_same_v<T, std::decay_t<R>> && std::is_lvalue_reference_v<R>) {
         return RefType<T>(value);
     } else if constexpr (lazy::traits::isLazy<R, T> || std::is_same_v<T, std::decay_t<R>>) {
@@ -343,6 +322,19 @@ LAZY_FORCE_INLINE decltype(auto) make_expr(R&& value){
         return std::forward<R>(value);
     } else {
         return OtherType<T, std::decay_t<R>>(std::forward<R>(value));
+    }
+}
+
+
+template<typename F>
+LAZY_FORCE_INLINE const auto& get_value(F&& value){
+    static_assert(::lazy::traits::isAnyLazyExpr<F>, "F must be a lazy expression");
+    using T = typename std::decay_t<F>::lazy_value_type;
+    static_assert(::lazy::traits::isAtom<F, T>, "F must be an Atom");
+    if constexpr (::lazy::traits::isLazy<F, T>){
+        return static_cast<const T&>(value);
+    } else {
+        return value.value;
     }
 }
 
