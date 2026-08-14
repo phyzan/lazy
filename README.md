@@ -9,10 +9,6 @@
 [![MPFR](https://img.shields.io/badge/MPFR-optional-orange?logo=gnu&logoColor=white)](https://www.mpfr.org/)
 [![Header-only](https://img.shields.io/badge/header--only-✓-brightgreen)](#installation)
 
----
-
-*Write arithmetic naturally. Pay nothing at runtime.*
-
 </div>
 
 ---
@@ -93,6 +89,48 @@ int main(){
 | 🔌 **Pluggable rules** | Specialise `CustomBinaryEvaluator<T>` / `CustomUnaryEvaluator<T>` for type-specific kernels |
 | 🔢 **MPFR ready** | Include `<lazy/apps/mpfrLazy.hpp>` for full `mpfr::mpreal` support with fused operations |
 | 🏎️ **Zero overhead** | All paths are `LAZY_FORCE_INLINE`; the compiler sees flat arithmetic after optimisation |
+
+---
+
+## Installation
+
+Clone and initialize submodules (needed for MPFR support via `external/mpreal`):
+```bash
+git submodule update --init --recursive
+```
+
+**Linking via CMake:**
+```cmake
+add_subdirectory(path/to/lazy)
+target_link_libraries(your_target PRIVATE lazy)  # core lazy/lazy.hpp only
+```
+This propagates the required C++20 standard and `LAZY_MPFR_RND` (see [Notes for `LazyType<mpfr::mpreal>`](#notes-for-lazytypempfrmpreal) below) automatically.
+
+MPFR support (`lazy/apps/mpfrLazy.hpp`) is opt-in, via the `LAZY_ENABLE_MPREAL` option — plain `add_subdirectory` doesn't require MPFR/GMP to be installed at all, since having the `mpreal` submodule checked out doesn't guarantee they're actually available/linkable:
+```bash
+cmake -S . -B build -DLAZY_ENABLE_MPREAL=ON -DLAZY_MPFR_RND=MPFR_RNDN
+```
+```cmake
+target_link_libraries(your_target PRIVATE lazy::mpfr)  # adds mpreal.h + links mpfr/gmp
+```
+`lazy::mpfr` only exists when `LAZY_ENABLE_MPREAL` is `ON`. It only affects the build (include dir, library links) — it isn't a preprocessor macro and has no effect on the headers themselves, so you still need to `#include <lazy/apps/mpfrLazy.hpp>` explicitly wherever you use `mpfr::mpreal`/`LazyType<mpfr::mpreal>` (it isn't pulled in automatically by `<lazy/lazy.hpp>`).
+
+**Without CMake:**
+```bash
+g++ -std=c++20 -O3 -DNDEBUG -DLAZY_MPFR_RND=MPFR_RNDN -Iinclude -Iexternal/mpreal test.cpp -o test -lmpfr -lgmp
+```
+
+**Syntax highlighting (clangd):** configure the build from this directory's own root so `compile_commands.json` ends up directly in `build/`, which clangd discovers automatically:
+```bash
+cmake -S . -B build
+```
+
+**Running the example** (needs `LAZY_ENABLE_MPREAL`, since it uses `mpfr::mpreal`):
+```bash
+cmake -S . -B build -DLAZY_ENABLE_MPREAL=ON -DLAZY_MPFR_RND=MPFR_RNDN
+cmake --build build
+./build/example
+```
 
 ---
 
@@ -231,7 +269,33 @@ struct CustomBinaryEvaluator<MyType>
 
 Each thread allocates its own scratch space for temporary values, so that multiple threads can evaluate the same expression concurrently. However, a single `LazyType<T>` variable must not be written from multiple threads simultaneously, given that its underlying type `T` is not thread-safe.
 
+### Updating cached workers
+
+That per-thread scratch space is allocated once and reused for every subsequent evaluation — it is **not** reconstructed on each use. If you change some global/static state that affects how `T` behaves (e.g. a global precision, locale, or rounding mode), already-allocated workers keep reflecting whatever state was in effect when they were first created, and will silently go stale unless you update them yourself, via `LazyType<T>::for_each_worker`:
+
+```cpp
+template<typename F>
+static void LazyType<T>::for_each_worker(F&& fn); // fn is called with a T& for every cached worker
+```
+
+For example, `lazy::set_default_mpreal_prec` (in `lazy/apps/mpfrLazy.hpp`) uses this to keep `mpfr::mpreal` workers consistent after changing the global default precision:
+
+```cpp
+inline void set_default_mpreal_prec(mpfr_prec_t prec){
+    mpfr::mpreal::set_default_prec(prec);
+    lazy::LazyType<mpfr::mpreal>::for_each_worker([prec](mpfr::mpreal& key){
+        key.set_prec(prec);
+    });
+}
+```
+
+**Note:** `workers` is `thread_local`, so `for_each_worker` only updates the calling thread's own cache. In a multi-threaded program, each thread that uses `LazyType<T>` must call it independently after a relevant global change — there is no way to refresh another thread's workers from outside that thread.
+
 
 ## Notes for `LazyType<mpfr::mpreal>`
 
+Via CMake, this requires linking `lazy::mpfr` instead of `lazy` (see [Installation](#installation)), which only exists when configured with `-DLAZY_ENABLE_MPREAL=ON`.
+
 The `mpfr` library provides functions for each operation (e.g. addition, multiplication, etc.) that take a rounding mode as an argument. The `LazyType<mpfr::mpreal>` specialization uses these functions, and by default, it passes `mpfr::mpreal::get_default_rnd()` in each operation. However, for most use cases, rounding to nearest is sufficient, so hardcoding `MPFR_RNDN` in all lazy operations will increase performance. In order to hardcode the rounding mode, the user can pass the macro `LAZY_MPFR_RND` with the desired rounding mode found in mpfr.h, e.g. `-DLAZY_MPFR_RND=MPFR_RNDN` to the compiler.
+
+**CMake:** when consuming the `lazy` target (directly, or transitively through another target like `xdiff`), `LAZY_MPFR_RND` is controlled by a cache variable of the same name, which defaults to `MPFR_RNDN` — so CMake builds are hardcoded to `MPFR_RNDN` out of the box, unlike the dynamic `get_default_rnd()` default described above for manual compilation. Override it with `cmake -DLAZY_MPFR_RND=MPFR_RNDZ ...` (or `set(LAZY_MPFR_RND MPFR_RNDZ CACHE STRING "" FORCE)` before `add_subdirectory` in a consuming project). Set it to empty (`-DLAZY_MPFR_RND=`) to leave the macro undefined and restore the dynamic `get_default_rnd()` behavior.

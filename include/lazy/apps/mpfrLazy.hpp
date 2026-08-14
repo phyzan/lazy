@@ -30,9 +30,8 @@
  * compiled in.
  *
  * ### Precision management
- * All thread-local scratch `mpfr::mpreal` objects allocated automatically are
- * registered in `LazyType<mpfr::mpreal>::workers`.  `set_default_mpreal_prec` iterates
- * over that registry and calls `set_prec` on every scratch variable so that precision
+ * `set_default_mpreal_prec` iterates
+ * over the registered scratch buffers and calls `set_prec` on every scratch variable so that precision
  * changes are reflected throughout the evaluation pipeline.
  *
  * @note Include this header *instead of* `lazy.hpp` when working with
@@ -40,7 +39,7 @@
  */
 
 #include <mpreal.h>
-#include "../lazy.hpp"
+#include "../lazy.hpp" // IWYU pragma: keep
 
 /// Plug `LazyType<mpfr::mpreal>` into `std::numeric_limits` so that generic
 /// numerical code (e.g. ODE solvers querying `epsilon`) works transparently.
@@ -594,7 +593,6 @@ inline void set_default_mpreal_prec(mpfr_prec_t prec){
     lazy::LazyType<mpfr::mpreal>::for_each_worker([prec](mpfr::mpreal& key){
         key.set_prec(prec);
     });
-    mpfr::mpreal::set_default_prec(prec);
 }
 
 } // namespace lazy

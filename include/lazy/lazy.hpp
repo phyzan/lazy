@@ -2,7 +2,8 @@
 #define LAZY_LAZY_HPP
 
 
-#include "src/patterns/pattern_matching.hpp"
-#include "src/lazytype.hpp"
+#include "src/patterns/pattern_matching.hpp" // IWYU pragma: keep
+#include "src/lazytype.hpp" // IWYU pragma: keep
+
 
 #endif //LAZY_LAZY_HPP
