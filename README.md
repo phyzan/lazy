@@ -99,6 +99,13 @@ Clone and initialize submodules (needed for MPFR support via `external/mpreal`):
 git submodule update --init --recursive
 ```
 
+## Macros
+
+| CMake Option | Macro | Effect |
+|--------------|-------|--------|
+| `LAZY_MPFR_RND` | `LAZY_MPFR_RND` | Sets the rounding mode for MPFR operations. Set it to `MPFR_RNDN` for most use cases, or do not set it at all (then the default rounding mode is called at each operation). |
+| `LAZY_ENABLE_MPREAL` | - | Only used when building the example. Simply links against the `mpfr` and `gmp` libraries. |
+
 **Linking via CMake:**
 ```cmake
 add_subdirectory(path/to/lazy)
