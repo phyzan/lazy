@@ -82,11 +82,10 @@ LAZY_DEFINE_UNARY_OP(cosh, Cosh, lazy::tags::COSH)
 LAZY_DEFINE_UNARY_OP(tanh, Tanh, lazy::tags::TANH)
 LAZY_DEFINE_UNARY_OP(erf, Erf, lazy::tags::ERF)
 
-template<lazy::traits::isAnyLazyExpr F>
+template<typename F>
+requires lazy::traits::isNode<F, typename std::decay_t<F>::lazy_value_type>
 std::ostream& operator<<(std::ostream& os, const F& expr){
-    using T = typename F::lazy_value_type;
-    T value = expr;
-    return os << value;
+    return os << expr.eval_worker();
 }
 
 template<typename T>
