@@ -21,6 +21,7 @@ template<typename T, typename Arg>                                              
 struct OP : public Unary<OP<T, Arg>, T, Arg>, public CustomUnaryEvaluator<T> {                \
     using Base = Unary<OP<T, Arg>, T, Arg>;                                     \
     using tag = TAG;                                                             \
+    using Base::Base;                                                            \
 };                                                                              \
                                                                                 \
 \
