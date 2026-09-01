@@ -58,7 +58,7 @@ struct CustomUnaryEvaluator<Type> : public UnaryEvaluator<CustomUnaryEvaluator<T
 /**
  * @brief Declare an `evaluate` overload for a specific unary function and argument type.
  *
- * Generates a `static LAZY_FORCE_INLINE void evaluate(tag, T& out, const ARG& arg)`
+ * Generates a `static LAZY_FORCE_INLINE void evaluate(tag, T& out, Pool<T> workers, const ARG& arg)`
  * declaration inside a `LAZY_SPECIALIZE_FUNCTIONS` block.
  *
  * @param T    The arithmetic value type.
@@ -67,7 +67,7 @@ struct CustomUnaryEvaluator<Type> : public UnaryEvaluator<CustomUnaryEvaluator<T
  * @param ARG  The C++ type of the argument (typically `T`).
  */
 #define LAZY_EVALUATE_FUNC(T, arg, tag, ARG)\
-LAZY_FORCE_INLINE static void evaluate(tag, T& out, const ARG& arg)
+LAZY_FORCE_INLINE static void evaluate(tag, T& out, Pool<T> workers, const ARG& arg)
 
 
 namespace lazy::tags{

@@ -1,22 +1,16 @@
 #ifndef LAZY_CORE_HPP
 #define LAZY_CORE_HPP
 
-#include <vector>
 #include <array>
-#include <iostream>
 #include <algorithm>
 #include <numeric>
+#include <cassert>
 #include "core_decls.hpp"
-#include "rules.hpp"
+#include <vector>
 
 namespace lazy{
 
-
-
-
 namespace detail{
-
-
 
 // ============================================================================
 // ExprBase — root of the expression hierarchy
@@ -173,18 +167,18 @@ struct Node : public Expr<Derived, T>{
 
     LAZY_FORCE_INLINE T& eval(T& out) const {
         assert(!contains_lazy_ref(out) && "Not safe to evaluate a lazy expression into a reference that is contained in the expression tree. This is possibly caused by calling some_lazy_expression.eval(some_variable), where some_variable is part of the expression tree.");
-        T* workers = reserve_workers<false>();
+        Pool<T> workers = reserve_workers<false>();
         return LAZY_THIS->eval_impl(out, workers);
     }
 
 
     // TODO Should optimize in case the evaluation is not a T, but e.g. a boolean.
     LAZY_FORCE_INLINE T& eval_worker() const {
-        T* workers = reserve_workers<true>();
-        return LAZY_THIS->eval_impl(workers[0], workers+1);
+        Pool<T> workers = reserve_workers<true>();
+        return LAZY_THIS->eval_impl(workers.consume(), workers);
     }
 
-    LAZY_FORCE_INLINE T& eval_impl(T& out, T* workers) const {
+    LAZY_FORCE_INLINE T& eval_impl(T& out, Pool<T> workers) const {
         return make_eval_impl(out, workers, std::make_index_sequence<branch_count>{});
     }
 
@@ -205,19 +199,24 @@ struct Node : public Expr<Derived, T>{
 protected:
 
     template<bool reserve_output = false>
-    inline static T* reserve_workers() {
-        constexpr size_t n_extra = reserve_output ? 1 : 0;
-        if (Derived::REQUIRED_TEMPORARIES + n_extra > LazyType<T>::workers.size()){
-            LazyType<T>::workers.resize(Derived::REQUIRED_TEMPORARIES + n_extra);
+    inline static Pool<T> reserve_workers() {
+        constexpr size_t required_count =
+            Derived::REQUIRED_TEMPORARIES
+            + (reserve_output ? 1 : 0)
+            + required_workers<T>;
+
+        if (required_count > LazyType<T>::workers.size()){
+            LazyType<T>::workers.resize(required_count);
         }
-        return LazyType<T>::workers.data();
+        std::vector<T>& workers = LazyType<T>::workers;
+        return Pool<T>(workers.data(), workers.size());
     }
 
 private:
 
     template<size_t... I>
-    LAZY_FORCE_INLINE T& make_eval_impl(T& out, T* worker, std::index_sequence<I...>) const {
-        Derived::eval_rule(typename Derived::tag{}, out, worker, make_expr<T>(this->get<I>())...);
+    LAZY_FORCE_INLINE T& make_eval_impl(T& out, Pool<T> workers, std::index_sequence<I...>) const {
+        Derived::eval_rule(typename Derived::tag{}, out, workers, make_expr<T>(this->get<I>())...);
         return out;
     }
 
@@ -333,11 +332,42 @@ LAZY_FORCE_INLINE const auto& get_value(F&& value){
     }
 }
 
+/*
+This is a non-owning memory view of a contiguous block of memory containing objects of type T. It contains information on how many objects are in the block and provides access to the underlying memory,
+with assertions to ensure safe access.
+*/
+template<typename T>
+class Pool {
+public:
+    Pool(T* workers, size_t size) : workers_(workers), size_(size) {}
+
+    [[nodiscard]]
+    inline T& consume() {
+        assert(size_ > 0 && "Cannot consume from an empty pool");
+        size_--;
+        return *(workers_++);
+    }
+
+    inline const T& operator[](size_t i) const{
+        assert(i <= size_ && "Index out of bounds");
+        return workers_[i];
+    }
+
+    inline size_t size() const {
+        return size_;
+    }
+    
+private:
+    T* workers_;
+    size_t size_;
+};
+
 
 } // namespace detail
 
 
 using detail::LazyType;
+using detail::required_workers;
 
 } // namespace lazy
 

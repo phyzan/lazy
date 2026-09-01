@@ -31,12 +31,12 @@ template<typename Derived, typename T>
 struct NodalEvaluator{
 
     template<lazy::traits::isTag tag, typename... Arg>
-    LAZY_FORCE_INLINE static void evaluate(tag, T& out, const Arg&... args){
-        Derived::evaluate(tag{}, out, args...);
+    LAZY_FORCE_INLINE static void evaluate(tag, T& out, Pool<T> workers, const Arg&... args){
+        Derived::evaluate(tag{}, out, workers, args...);
     }
 
     template<lazy::traits::isTag tag, lazy::traits::isLazyExpr<T>... Branch>
-    LAZY_FORCE_INLINE static void eval_rule(tag, T& out, T* worker, const Branch&... branch){
+    LAZY_FORCE_INLINE static void eval_rule(tag, T& out, Pool<T> worker, const Branch&... branch){
         // IMPORTANT: out must NOT be the same memory location as at least one of the branches.
         // See eval_rule_impl for details. TODO: try to allow `out` to be one of the branches, without using more temporaries.
         return eval_rule_impl(std::make_index_sequence<sizeof...(Branch)>{}, tag{}, out, worker, branch...);
@@ -45,24 +45,27 @@ struct NodalEvaluator{
 private:
 
     LAZY_FORCE_INLINE
-    static constexpr void sorted_evaluator(T& out, T* worker){}
+    static constexpr void sorted_evaluator(T& out, Pool<T> worker){}
 
     template<typename F, typename... Rest>
     LAZY_FORCE_INLINE
-    static constexpr void sorted_evaluator(T& out, T* worker, const F& f, const Rest&... branch){
+    static constexpr void sorted_evaluator(T& out, Pool<T> workers, const F& f, const Rest&... branch){
         // now branches are sorted by the number of required temporaries, with the largest first
         // First node evaluates into 'out', subsequent nodes into worker[0], worker[1], etc.
         if constexpr (lazy::traits::isNode<F, T>) {
-            f.eval_impl(out, worker);
-            sorted_evaluator(*worker, worker + 1, branch...);
-        } else {
-            sorted_evaluator(out, worker, branch...);
+            f.eval_impl(out, workers);
+            constexpr bool more_nodes = (lazy::traits::isNode<Rest, T> || ... || false);
+            if constexpr (more_nodes){
+                sorted_evaluator(workers.consume(), workers, branch...);
+                return;
+            }
         }
+        sorted_evaluator(out, workers, branch...);
     }
 
     // Helper to get the evaluated argument for branch at original index OrigIdx
     template<size_t OrigIdx, typename node_t, lazy::traits::isLazyExpr<T>... Branch>
-    LAZY_FORCE_INLINE static const auto& get_evaluated_arg(T& out, T* worker, const Branch&... branch) {
+    LAZY_FORCE_INLINE static const auto& get_evaluated_arg(T& out, Pool<T> workers, const Branch&... branch) {
         const auto& br = pack_elem<OrigIdx>(branch...);
         using branch_t = std::decay_t<decltype(br)>;
 
@@ -91,23 +94,23 @@ private:
             if constexpr (slot == 0) {
                 return out;
             } else {
-                return worker[slot - 1];
+                return workers[slot - 1];
             }
         }
     }
 
     template<lazy::traits::isTag tag, size_t... I, lazy::traits::isLazyExpr<T>... Branch>
-    LAZY_FORCE_INLINE static void eval_rule_impl(std::index_sequence<I...>, tag, T& out, T* worker, const Branch&... branch){
+    LAZY_FORCE_INLINE static void eval_rule_impl(std::index_sequence<I...>, tag, T& out, Pool<T> workers, const Branch&... branch){
         // IMPORTANT: out must NOT be the same memory location as at least one of the branches: if `out` is contained as a RefType in one of the branches, it will lead to invalid results. The user must ensure that `out` is a separate memory location.
         static_assert(((not lazy::traits::isLazy<Branch, T>) && ...), "LazyType should not be passed to eval_rule, use RefType instead");
         using node_t = lazy::detail::TypeGetter<T, tag, Branch...>::type;
         static_assert(not std::is_void_v<node_t>, "Invalid node type");
 
         constexpr auto sorted_idx = node_t::sort_branches_by_required_workers();
-        sorted_evaluator(out, worker, pack_elem<sorted_idx[I]>(branch...)...);
+        sorted_evaluator(out, workers, pack_elem<sorted_idx[I]>(branch...)...);
 
         // Call evaluate with arguments in original order
-        Derived::evaluate(tag{}, out, get_evaluated_arg<I, node_t, Branch...>(out, worker, branch...)...);
+        Derived::evaluate(tag{}, out, workers, get_evaluated_arg<I, node_t, Branch...>(out, workers, branch...)...);
     }
 };
 

@@ -17,7 +17,7 @@ template<typename T>
 struct BooleanEvaluator : public BinaryEvaluator<BooleanEvaluator<T>, T>{
 
     template<traits::isBoolTag tag, typename L, typename R>
-    LAZY_FORCE_INLINE static void evaluate(tag, T& out, const L& a, const R& b){
+    LAZY_FORCE_INLINE static void evaluate(tag, T& out, Pool<T> /*workers*/, const L& a, const R& b){
         out = get_bool(tag{}, a, b);
     }
 
@@ -53,16 +53,16 @@ struct Comparison : public BinaryOperator<Derived, T, L, R>, public BooleanEvalu
     static constexpr size_t REQUIRED_TEMPORARIES = Base::REQUIRED_TEMPORARIES + (lazy::traits::isNode<L, T> || lazy::traits::isNode<R, T> ? 1 : 0);
 
     operator bool() const{
-        T* workers = this->reserve_workers();
+        Pool<T> workers = this->reserve_workers();
         if constexpr (lazy::traits::isNode<L, T> && lazy::traits::isNode<R, T>) {
-            T& left = this->template get<0>().eval_impl(workers[0], workers+1);
-            T& right = this->template get<1>().eval_impl(workers[1], workers+2);
+            T& left = this->template get<0>().eval_impl(workers.consume(), workers);
+            T& right = this->template get<1>().eval_impl(workers.consume(), workers);
             return this->get_bool(typename Derived::tag{}, left, right);
         } else if constexpr (lazy::traits::isNode<L, T>) {
-            T& left = this->template get<0>().eval_impl(workers[0], workers+1);
+            T& left = this->template get<0>().eval_impl(workers.consume(), workers);
             return this->get_bool(typename Derived::tag{}, left, get_value(this->template get<1>()));
         } else if constexpr (lazy::traits::isNode<R, T>) {
-            T& right = this->template get<1>().eval_impl(workers[0], workers+1);
+            T& right = this->template get<1>().eval_impl(workers.consume(), workers);
             return this->get_bool(typename Derived::tag{}, get_value(this->template get<0>()), right);
         } else {
             return this->get_bool(typename Derived::tag{}, get_value(this->template get<0>()), get_value(this->template get<1>()));

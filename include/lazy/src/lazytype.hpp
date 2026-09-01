@@ -140,7 +140,7 @@ struct LazyType : public detail::Atom<LazyType<T>, T>, public T{
         for (T& p : workers) {fn(p);};
     }
 
-    inline static thread_local std::vector<T> workers;
+    inline static thread_local std::vector<T> workers{required_workers<T>};
 
 private:
 

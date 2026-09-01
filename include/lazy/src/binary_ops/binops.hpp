@@ -29,7 +29,7 @@ struct BinaryEvaluator : NodalEvaluator<Derived, T> {
     using Base = NodalEvaluator<Derived, T>;
 
     template<lazy::traits::isTag tag, typename L, typename R>
-    inline static void evaluate(tag, T& out, const L& a, const R& b){
+    inline static void evaluate(tag, T& /*out*/, Pool<T> /*workers*/, const L& /*a*/, const R& /*b*/){
         static_assert(false, "BinaryEvaluator::evaluate must be specialised for each performed operation");
     }
 };
@@ -45,7 +45,7 @@ struct CustomBinaryEvaluator : public BinaryEvaluator<CustomBinaryEvaluator<T>, 
  * @tparam L   The type of the left sub-expression (`isLazyExpr<L,T>` required).
  * @tparam R   The type of the right sub-expression (`isLazyExpr<R,T>` required).
  *
- * Uses `CustomBinaryEvaluator<T>::evaluate(PLUS{}, out, a, b)` for the actual computation.
+ * Uses `CustomBinaryEvaluator<T>::evaluate(PLUS{}, out, workers, a, b)` for the actual computation.
  * The default implementation calls the built-in `T::operator+`; specialise
  * `CustomBinaryEvaluator<T>` to override.
  */

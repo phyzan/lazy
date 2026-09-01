@@ -220,6 +220,30 @@ For types that are are supposed to fully mimic arithmetic types, the macro ```LA
 
 Some kernels are required so that all operations can be evaluated, but you can also provide optimized kernels for specific combinations of operands (e.g. a+b*c, if your type has a fused multiply-add optimized operation). The library chooses the specialized kernel (if it matches an algebraic expression) at compile-time, otherwise it falls back to the default implementation.
 
+
+The required kernels that must be overriden are all the basic overloads of the `evaluate` function, whose main parameters are the `out` parameter that will hold the result of the operation, and the input operands (raw values that have been declared to be compatible with the custom type), as in the examples below.
+
+**Important**: For `evaluate` overloads where any of the input operands is the same type as `out`, keep in mind that they might be the same memory location, so make sure that any operation that modifies `out`, does so safely and correctly handles potential aliasing with the input operands.
+If intermediate evaluations are required, make sure to template-specialize the `constexpr size_t lazy::required_workers` number (default is 0) to be the minimum number that is used in any of the `evaluate` overloads for your custom type. For `mpfr::mpreal`, this is done as follows:
+
+```cpp
+template<>
+inline constexpr size_t lazy::required_workers<mpfr::mpreal> = 1;
+```
+because some overloads like this:
+```cpp
+LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> workers, const int &a, const T &b){
+    T& worker = workers.consume();
+    mpfr_set_si(worker.mpfr_ptr(), a, LAZY_MPFR_RND);
+    mpfr_div(out.mpfr_ptr(), worker.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
+}
+```
+evaluate an intermediate result using a worker from the pool before performing the final operation on the `out` parameter.
+
+Optionally, the `eval_rule` function can be overriden to provide custom evaluation rules for specific operations, and its inputs are the `out` parameter that will hold the result of the operation, and node-like objects representing specific algebraic expressions. In this case, no caution regarding aliasing with the input operands is necessary, as `out` is guaranteed not to alias with any object in any of the input expression trees.
+
+See the [example](include/lazy/apps/mpfrLazy.hpp) for a complete implementation of custom kernels for the `mpfr::mpreal` type.
+
 ```cpp
 template <>
 struct CustomUnaryEvaluator<MyType>
@@ -231,17 +255,17 @@ struct CustomUnaryEvaluator<MyType>
     using Base::evaluate;
 
     // neg
-    LAZY_FORCE_INLINE static void evaluate(NEG, T& out, const T& a){
+    LAZY_FORCE_INLINE static void evaluate(NEG, T& out, Pool<T> /**/, const T& a){
         mpfr_neg(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // abs
-    LAZY_FORCE_INLINE static void evaluate(ABS, T& out, const T& a){
+    LAZY_FORCE_INLINE static void evaluate(ABS, T& out, Pool<T> /**/, const T& a){
         mpfr_abs(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
     // sqrt
-    LAZY_FORCE_INLINE static void evaluate(SQRT, T& out, const T& a){
+    LAZY_FORCE_INLINE static void evaluate(SQRT, T& out, Pool<T> /**/, const T& a){
         mpfr_sqrt(out.mpfr_ptr(), a.mpfr_srcptr(), mpfr::mpreal::get_default_rnd());
     }
 
@@ -258,12 +282,12 @@ struct CustomBinaryEvaluator<MyType>
     using Base::eval_rule;
 
     // Define MyType + MyType
-    LAZY_FORCE_INLINE static void evaluate(PLUS, T& out, const T& a, const T& b) {
+    LAZY_FORCE_INLINE static void evaluate(PLUS, T& out, Pool<T> /**/, const T& a, const T& b) {
         make_addition(out, a, b);  // call your type's addition kernel
     }
 
     // Define MyType + double
-    LAZY_FORCE_INLINE static void evaluate(PLUS, T& out, const T& a, const double& b) {
+    LAZY_FORCE_INLINE static void evaluate(PLUS, T& out, Pool<T> /**/, const T& a, const double& b) {
         make_addition(out, a, b);
     }
 

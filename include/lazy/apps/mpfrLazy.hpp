@@ -50,6 +50,9 @@
 
 LAZY_DECLARE_NUMERIC_TYPE(mpfr::mpreal);
 
+template<>
+inline constexpr size_t lazy::required_workers<mpfr::mpreal> = 1;
+
 namespace lazy::detail {
 
 
@@ -68,92 +71,92 @@ LAZY_SPECIALIZE_FUNCTIONS(mpfr::mpreal){
     using Base::evaluate;
 
     // neg
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::NEG, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::NEG, T &out, Pool<T> /**/, const T &a){
         mpfr_neg(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // abs
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::ABS, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::ABS, T &out, Pool<T> /**/, const T &a){
         mpfr_abs(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // sqrt
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::SQRT, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::SQRT, T &out, Pool<T> /**/, const T &a){
         mpfr_sqrt(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // exp
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::EXP, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::EXP, T &out, Pool<T> /**/, const T &a){
         mpfr_exp(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // log
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::LOG, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::LOG, T &out, Pool<T> /**/, const T &a){
         mpfr_log(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // sin
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::SIN, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::SIN, T &out, Pool<T> /**/, const T &a){
         mpfr_sin(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // cos
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::COS, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::COS, T &out, Pool<T> /**/, const T &a){
         mpfr_cos(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // tan
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::TAN, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::TAN, T &out, Pool<T> /**/, const T &a){
         mpfr_tan(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // cot
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::COT, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::COT, T &out, Pool<T> /**/, const T &a){
         mpfr_cot(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // sec
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::SEC, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::SEC, T &out, Pool<T> /**/, const T &a){
         mpfr_sec(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // csc
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::CSC, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::CSC, T &out, Pool<T> /**/, const T &a){
         mpfr_csc(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // asin
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::ASIN, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::ASIN, T &out, Pool<T> /**/, const T &a){
         mpfr_asin(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // acos
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::ACOS, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::ACOS, T &out, Pool<T> /**/, const T &a){
         mpfr_acos(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // atan
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::ATAN, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::ATAN, T &out, Pool<T> /**/, const T &a){
         mpfr_atan(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // sinh
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::SINH, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::SINH, T &out, Pool<T> /**/, const T &a){
         mpfr_sinh(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // cosh
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::COSH, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::COSH, T &out, Pool<T> /**/, const T &a){
         mpfr_cosh(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // tanh
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::TANH, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::TANH, T &out, Pool<T> /**/, const T &a){
         mpfr_tanh(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // erf
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::ERF, T &out, const T &a){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::ERF, T &out, Pool<T> /**/, const T &a){
         mpfr_erf(out.mpfr_ptr(), a.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
@@ -192,52 +195,52 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
     using Base::eval_rule;
 
     // mpreal with mpreal
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, const T &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, Pool<T> /**/, const T &a, const T &b){
         mpfr_add(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with double
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, const T &a, const double &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, Pool<T> /**/, const T &a, const double &b){
         mpfr_add_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, const double &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, Pool<T> /**/, const double &a, const T &b){
         mpfr_add_d(out.mpfr_ptr(), b.mpfr_srcptr(), a, LAZY_MPFR_RND);
     }
 
     // mpreal with int
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, const T &a, const int &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, Pool<T> /**/, const T &a, const int &b){
         mpfr_add_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, const int &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, Pool<T> /**/, const int &a, const T &b){
         mpfr_add_si(out.mpfr_ptr(), b.mpfr_srcptr(), a, LAZY_MPFR_RND);
     }
 
     // mpreal with float
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, const T &a, const float &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, Pool<T> /**/, const T &a, const float &b){
         mpfr_add_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, const float &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, Pool<T> /**/, const float &a, const T &b){
         mpfr_add_d(out.mpfr_ptr(), b.mpfr_srcptr(), a, LAZY_MPFR_RND);
     }
 
     // mpreal with long
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, const T &a, const long &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, Pool<T> /**/, const T &a, const long &b){
         mpfr_add_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, const long &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, Pool<T> /**/, const long &a, const T &b){
         mpfr_add_si(out.mpfr_ptr(), b.mpfr_srcptr(), a, LAZY_MPFR_RND);
     }
 
     // mpreal with size_t
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, const T &a, const size_t &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, Pool<T> /**/, const T &a, const size_t &b){
         mpfr_add_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, const size_t &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::PLUS, T &out, Pool<T> /**/, const size_t &a, const T &b){
         mpfr_add_ui(out.mpfr_ptr(), b.mpfr_srcptr(), a, LAZY_MPFR_RND);
     }
 
@@ -247,52 +250,52 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
 
 
     // mpreal with mpreal
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, const T &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, Pool<T> /**/, const T &a, const T &b){
         mpfr_sub(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with double
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, const T &a, const double &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, Pool<T> /**/, const T &a, const double &b){
         mpfr_sub_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, const double &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, Pool<T> /**/, const double &a, const T &b){
         mpfr_d_sub(out.mpfr_ptr(), a, b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with int
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, const T &a, const int &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, Pool<T> /**/, const T &a, const int &b){
         mpfr_sub_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, const int &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, Pool<T> /**/, const int &a, const T &b){
         mpfr_si_sub(out.mpfr_ptr(), a, b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with float
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, const T &a, const float &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, Pool<T> /**/, const T &a, const float &b){
         mpfr_sub_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, const float &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, Pool<T> /**/, const float &a, const T &b){
         mpfr_d_sub(out.mpfr_ptr(), a, b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with long
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, const T &a, const long &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, Pool<T> /**/, const T &a, const long &b){
         mpfr_sub_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, const long &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, Pool<T> /**/, const long &a, const T &b){
         mpfr_si_sub(out.mpfr_ptr(), a, b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with size_t
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, const T &a, const size_t &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, Pool<T> /**/, const T &a, const size_t &b){
         mpfr_sub_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, const size_t &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MINUS, T &out, Pool<T> /**/, const size_t &a, const T &b){
         mpfr_ui_sub(out.mpfr_ptr(), a, b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
@@ -303,52 +306,52 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
 
 
     // mpreal with mpreal
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, const T &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, Pool<T> /**/, const T &a, const T &b){
         mpfr_mul(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with double
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, const T &a, const double &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, Pool<T> /**/, const T &a, const double &b){
         mpfr_mul_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, const double &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, Pool<T> /**/, const double &a, const T &b){
         mpfr_mul_d(out.mpfr_ptr(), b.mpfr_srcptr(), a, LAZY_MPFR_RND);
     }
 
     // mpreal with int
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, const T &a, const int &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, Pool<T> /**/, const T &a, const int &b){
         mpfr_mul_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, const int &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, Pool<T> /**/, const int &a, const T &b){
         mpfr_mul_si(out.mpfr_ptr(), b.mpfr_srcptr(), a, LAZY_MPFR_RND);
     }
 
     // mpreal with float
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, const T &a, const float &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, Pool<T> /**/, const T &a, const float &b){
         mpfr_mul_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, const float &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, Pool<T> /**/, const float &a, const T &b){
         mpfr_mul_d(out.mpfr_ptr(), b.mpfr_srcptr(), a, LAZY_MPFR_RND);
     }
 
     // mpreal with long
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, const T &a, const long &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, Pool<T> /**/, const T &a, const long &b){
         mpfr_mul_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, const long &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, Pool<T> /**/, const long &a, const T &b){
         mpfr_mul_si(out.mpfr_ptr(), b.mpfr_srcptr(), a, LAZY_MPFR_RND);
     }
 
     // mpreal with size_t
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, const T &a, const size_t &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, Pool<T> /**/, const T &a, const size_t &b){
         mpfr_mul_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, const size_t &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MUL, T &out, Pool<T> /**/, const size_t &a, const T &b){
         mpfr_mul_ui(out.mpfr_ptr(), b.mpfr_srcptr(), a, LAZY_MPFR_RND);
     }
 
@@ -360,57 +363,59 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
 
 
     // mpreal with mpreal
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, const T &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> /**/, const T &a, const T &b){
         mpfr_div(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with double
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, const T &a, const double &b){
-
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> /**/, const T &a, const double &b){
         mpfr_div_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, const double &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> /**/, const double &a, const T &b){
         mpfr_d_div(out.mpfr_ptr(), a, b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with int
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, const T &a, const int &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> /**/, const T &a, const int &b){
         mpfr_div_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, const int &a, const T &b){
-        mpfr_set_si(out.mpfr_ptr(), a, LAZY_MPFR_RND);
-        mpfr_div(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> workers, const int &a, const T &b){
+        T& worker = workers.consume();
+        mpfr_set_si(worker.mpfr_ptr(), a, LAZY_MPFR_RND);
+        mpfr_div(out.mpfr_ptr(), worker.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with float
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, const T &a, const float &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> /**/, const T &a, const float &b){
         mpfr_div_d(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, const float &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> /**/, const float &a, const T &b){
         mpfr_d_div(out.mpfr_ptr(), a, b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with long
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, const T &a, const long &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> /**/, const T &a, const long &b){
         mpfr_div_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, const long &a, const T &b){
-        mpfr_set_si(out.mpfr_ptr(), a, LAZY_MPFR_RND);
-        mpfr_div(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> workers, const long &a, const T &b){
+        T& worker = workers.consume();
+        mpfr_set_si(worker.mpfr_ptr(), a, LAZY_MPFR_RND);
+        mpfr_div(out.mpfr_ptr(), worker.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with size_t
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, const T &a, const size_t &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> /**/, const T &a, const size_t &b){
         mpfr_div_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, const size_t &a, const T &b){
-        mpfr_set_ui(out.mpfr_ptr(), a, LAZY_MPFR_RND);
-        mpfr_div(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::DIV, T &out, Pool<T> workers, const size_t &a, const T &b){
+        T& worker = workers.consume();
+        mpfr_set_ui(worker.mpfr_ptr(), a, LAZY_MPFR_RND);
+        mpfr_div(out.mpfr_ptr(), worker.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
 
@@ -419,69 +424,76 @@ LAZY_SPECIALIZE_OPERATIONS(mpfr::mpreal){
 
 
     // mpreal with mpreal
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, const T &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, Pool<T> /**/, const T &a, const T &b){
         mpfr_pow(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with double
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, const T &a, const double &b){
-        mpfr_set_d(out.mpfr_ptr(), b, LAZY_MPFR_RND);
-        mpfr_pow(out.mpfr_ptr(), a.mpfr_srcptr(), out.mpfr_srcptr(), LAZY_MPFR_RND);
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, Pool<T> workers, const T &a, const double &b){
+        T& worker = workers.consume();
+        mpfr_set_d(worker.mpfr_ptr(), b, LAZY_MPFR_RND);
+        mpfr_pow(out.mpfr_ptr(), a.mpfr_srcptr(), worker.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, const double &a, const T &b){
-        mpfr_set_d(out.mpfr_ptr(), a, LAZY_MPFR_RND);
-        mpfr_pow(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, Pool<T> workers, const double &a, const T &b){
+        T& worker = workers.consume();
+        mpfr_set_d(worker.mpfr_ptr(), a, LAZY_MPFR_RND);
+        mpfr_pow(out.mpfr_ptr(), worker.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with int
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, const T &a, const int &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, Pool<T> /**/, const T &a, const int &b){
         mpfr_pow_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, const int &a, const T &b){
-        mpfr_set_si(out.mpfr_ptr(), a, LAZY_MPFR_RND);
-        mpfr_pow(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, Pool<T> workers, const int &a, const T &b){
+        T& worker = workers.consume();
+        mpfr_set_si(worker.mpfr_ptr(), a, LAZY_MPFR_RND);
+        mpfr_pow(out.mpfr_ptr(), worker.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with float
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, const T &a, const float &b){
-        mpfr_set_d(out.mpfr_ptr(), static_cast<double>(b), LAZY_MPFR_RND);
-        mpfr_pow(out.mpfr_ptr(), a.mpfr_srcptr(), out.mpfr_srcptr(), LAZY_MPFR_RND);
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, Pool<T> workers, const T &a, const float &b){
+        T& worker = workers.consume();
+        mpfr_set_d(worker.mpfr_ptr(), static_cast<double>(b), LAZY_MPFR_RND);
+        mpfr_pow(out.mpfr_ptr(), a.mpfr_srcptr(), worker.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, const float &a, const T &b){
-        mpfr_set_d(out.mpfr_ptr(), static_cast<double>(a), LAZY_MPFR_RND);
-        mpfr_pow(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, Pool<T> workers, const float &a, const T &b){
+        T& worker = workers.consume();
+        mpfr_set_d(worker.mpfr_ptr(), static_cast<double>(a), LAZY_MPFR_RND);
+        mpfr_pow(out.mpfr_ptr(), worker.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with long
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, const T &a, const long &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, Pool<T> /**/, const T &a, const long &b){
         mpfr_pow_si(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, const long &a, const T &b){
-        mpfr_set_si(out.mpfr_ptr(), a, LAZY_MPFR_RND);
-        mpfr_pow(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, Pool<T> workers, const long &a, const T &b){
+        T& worker = workers.consume();
+        mpfr_set_si(worker.mpfr_ptr(), a, LAZY_MPFR_RND);
+        mpfr_pow(out.mpfr_ptr(), worker.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // mpreal with size_t
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, const T &a, const size_t &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, Pool<T> /**/, const T &a, const size_t &b){
         mpfr_pow_ui(out.mpfr_ptr(), a.mpfr_srcptr(), b, LAZY_MPFR_RND);
     }
 
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, const size_t &a, const T &b){
-        mpfr_set_ui(out.mpfr_ptr(), a, LAZY_MPFR_RND);
-        mpfr_pow(out.mpfr_ptr(), out.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::POW, T &out, Pool<T> workers, const size_t &a, const T &b){
+        T& worker = workers.consume();
+        mpfr_set_ui(worker.mpfr_ptr(), a, LAZY_MPFR_RND);
+        mpfr_pow(out.mpfr_ptr(), worker.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // min
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MIN, T &out, const T &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MIN, T &out, Pool<T> /**/, const T &a, const T &b){
         mpfr_min(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 
     // max
-    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MAX, T &out, const T &a, const T &b){
+    LAZY_FORCE_INLINE static void evaluate(lazy::tags::MAX, T &out, Pool<T> /**/, const T &a, const T &b){
         mpfr_max(out.mpfr_ptr(), a.mpfr_srcptr(), b.mpfr_srcptr(), LAZY_MPFR_RND);
     }
 

@@ -16,17 +16,17 @@ template<typename Derived, typename T>
 struct UnaryEvaluator : NodalEvaluator<Derived, T> {
 
     template<lazy::traits::isTag tag, typename Arg>
-    inline static void evaluate(tag, T& out, const Arg& a){
+    inline static void evaluate(tag, T& /*out*/, Pool<T> /*workers*/, const Arg& /*a*/){
         static_assert(false, "UnaryEvaluator::evaluate must be specialised for each performed operation");
     }
 
     // Bypassing the `eval_rule` dispatch for unary operations, for clarity only. Performance should not change.
     template<lazy::traits::isTag tag, lazy::traits::isLazyExpr<T> Branch>
-    LAZY_FORCE_INLINE static void eval_rule(tag, T& out, T* worker, const Branch& arg){
+    LAZY_FORCE_INLINE static void eval_rule(tag, T& out, Pool<T> workers, const Branch& arg){
         if constexpr (lazy::traits::isNode<Branch, T>) {
-            Derived::evaluate(tag{}, out, arg.eval_impl(out, worker));
+            Derived::evaluate(tag{}, out, workers, arg.eval_impl(out, workers));
         } else {
-            Derived::evaluate(tag{}, out, get_value(arg));
+            Derived::evaluate(tag{}, out, workers, get_value(arg));
         }
     }
 };

@@ -138,6 +138,12 @@ struct TypeGetter{
     using type = void;
 };
 
+template<typename T>
+class Pool;
+
+
+template<typename T>
+inline constexpr size_t required_workers = 0;
 
 
 

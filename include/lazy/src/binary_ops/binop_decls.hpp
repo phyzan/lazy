@@ -21,7 +21,7 @@
 /**
  * @brief Declare an `evaluate` overload for a specific binary operation and operand types.
  *
- * Generates a `static LAZY_FORCE_INLINE void evaluate(tag, T& out, const LEFT& a, const RIGHT& b)`
+ * Generates a `static LAZY_FORCE_INLINE void evaluate(tag, T& out, Pool<T> workers, const LEFT& a, const RIGHT& b)`
  * declaration inside a `LAZY_SPECIALIZE_OPERATIONS` block.  The body should follow immediately.
  *
  * @param T     The arithmetic value type.
@@ -32,7 +32,7 @@
  * @param RIGHT The C++ type of the right operand.
  */
 #define LAZY_EVALUATE_OPER(T, a, b, LEFT, tag, RIGHT)\
-LAZY_FORCE_INLINE static void evaluate(tag, T& out, const LEFT& a, const RIGHT& b)
+LAZY_FORCE_INLINE static void evaluate(tag, T& out, Pool<T> workers, const LEFT& a, const RIGHT& b)
 
 /**
  * @brief Open a specialisation block for binary operation rules for type `Type`.
