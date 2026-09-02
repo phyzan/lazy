@@ -55,14 +55,18 @@ struct Comparison : public BinaryOperator<Derived, T, L, R>, public BooleanEvalu
     operator bool() const{
         Pool<T> workers = this->reserve_workers();
         if constexpr (lazy::traits::isNode<L, T> && lazy::traits::isNode<R, T>) {
-            T& left = this->template get<0>().eval_impl(workers.consume(), workers);
-            T& right = this->template get<1>().eval_impl(workers.consume(), workers);
+            T& left_out = workers.consume();
+            T& left = this->template get<0>().eval_impl(left_out, workers);
+            T& right_out = workers.consume();
+            T& right = this->template get<1>().eval_impl(right_out, workers);
             return this->get_bool(typename Derived::tag{}, left, right);
         } else if constexpr (lazy::traits::isNode<L, T>) {
-            T& left = this->template get<0>().eval_impl(workers.consume(), workers);
+            T& out = workers.consume();
+            T& left = this->template get<0>().eval_impl(out, workers);
             return this->get_bool(typename Derived::tag{}, left, get_value(this->template get<1>()));
         } else if constexpr (lazy::traits::isNode<R, T>) {
-            T& right = this->template get<1>().eval_impl(workers.consume(), workers);
+            T& out = workers.consume();
+            T& right = this->template get<1>().eval_impl(out, workers);
             return this->get_bool(typename Derived::tag{}, get_value(this->template get<0>()), right);
         } else {
             return this->get_bool(typename Derived::tag{}, get_value(this->template get<0>()), get_value(this->template get<1>()));

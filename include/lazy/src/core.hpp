@@ -175,7 +175,8 @@ struct Node : public Expr<Derived, T>{
     // TODO Should optimize in case the evaluation is not a T, but e.g. a boolean.
     LAZY_FORCE_INLINE T& eval_worker() const {
         Pool<T> workers = reserve_workers<true>();
-        return LAZY_THIS->eval_impl(workers.consume(), workers);
+        T& out = workers.consume();
+        return LAZY_THIS->eval_impl(out, workers);
     }
 
     LAZY_FORCE_INLINE T& eval_impl(T& out, Pool<T> workers) const {
