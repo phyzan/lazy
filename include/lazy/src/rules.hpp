@@ -56,8 +56,8 @@ private:
             f.eval_impl(out, workers);
             constexpr bool more_nodes = (lazy::traits::isNode<Rest, T> || ... || false);
             if constexpr (more_nodes){
-                T& out = workers.consume();
-                sorted_evaluator(out, workers, branch...);
+                T& w = workers.consume();
+                sorted_evaluator(w, workers, branch...);
                 return;
             }
         }
