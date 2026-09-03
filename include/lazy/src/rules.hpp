@@ -2,10 +2,7 @@
 #define LAZY_RULES_HPP
 
 #include "core_decls.hpp"
-#include <tuple>
 #include <utility>
-#include <vector>
-#include <algorithm>
 #include <cassert>
 
 
